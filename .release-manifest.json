@@ -33,7 +33,7 @@
   ],
   "files": {
     ".github/scripts/check_release.py": "aef15a6c59c00d33ad067560e05bf03240c1cfbe3f61f820552a68436f2b92b6",
-    ".github/workflows/release.yml": "b0ec5dfcc888019619a9aae50b2131e2b2dd2d1e9eabbb9d72c5f37f197a4a3c",
+    ".github/workflows/release.yml": "d1cedfa6bb3af58f3790d3ad5dce17154cfa2a8dce9fa8b8943a4744ed23de98",
     ".pkgmeta": "cbbe7b06408a9cab94a393c4683b67ace002528fbdd2c201e76b3b113d1ee25d",
     "Art/ally.tga": "e196818bd35df63e9fd583bd62eca06346a9084b481656833d2bf71cd4be4337",
     "Art/chronicle-book.tga": "21e0c79dda7aabc3adaeee1e299b93f994800b86abd8417a526b0f4ce5ef739a",
