@@ -22,9 +22,11 @@ unzip it into your World of Warcraft `Interface/AddOns` folder, and enable
 **Companion Chronicle** in game. Use the release ZIP rather than GitHub's
 automatically generated source archive.
 
-Open the journal with `/cchron` or `/companionchronicle`. Right-click a supported
-player portrait or chat name to save an impression or add a note. The journal
-lets me revisit recent encounters, find people I've remembered, and choose
+Click the book icon beside the minimap to open the journal, or use `/cchron` or
+`/companionchronicle`. Drag the button around the minimap to move it; its position
+is saved. Right-click a supported player portrait or chat name to save an
+impression or add a note. The journal lets me revisit recent encounters, find
+people I've remembered, and choose
 between the illustrated Chronicle and compact Modern views. If you want outdoor
 nameplate reminders, enable friendly nameplates in the game settings.
 

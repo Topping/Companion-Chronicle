@@ -112,6 +112,11 @@ function Model.Open(saved, partition)
             return nil, "Invalid settings; existing data was preserved."
         end
     end
+    if saved.settings and saved.settings.minimapAngle ~= nil
+        and (not Finite(saved.settings.minimapAngle) or saved.settings.minimapAngle < 0
+            or saved.settings.minimapAngle >= 360) then
+        return nil, "Invalid minimap position; existing data was preserved."
+    end
     local db = saved.partitions[partition]
     if db == nil then db = { characters = {}, nextEntry = 1 } end
     if type(db) ~= "table" or type(db.characters) ~= "table" or not Finite(db.nextEntry)
@@ -145,6 +150,7 @@ function Model.Open(saved, partition)
     if saved.settings.askForNotes == nil then saved.settings.askForNotes = false end
     if saved.settings.chatMarkers == nil then saved.settings.chatMarkers = true end
     if saved.settings.groupReminders == nil then saved.settings.groupReminders = true end
+    if saved.settings.minimapAngle == nil then saved.settings.minimapAngle = 225 end
     return setmetatable({ saved = saved, db = db, recent = {}, nextRecent = 1 }, { __index = Model })
 end
 

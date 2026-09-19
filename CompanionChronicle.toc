@@ -1,8 +1,9 @@
 ## Interface: 16001
 ## Title: Companion Chronicle
-## Notes: Personal reputation, optional notes and recognition. Open with /companionchronicle.
+## Notes: Personal reputation, optional notes and recognition. Open from the minimap or with /cchron.
 ## Author: Addon Developer
-## Version: 0.2.0
+## Version: 0.2.1
+## IconTexture: Interface\AddOns\CompanionChronicle\Art\journal-icon
 ## X-Curse-Project-ID: 1703274
 ## SavedVariables: AlliesDB
 
@@ -16,4 +17,5 @@ Views/Chronicle.lua
 UI.lua
 Recognition.lua
 Social.lua
+Minimap.lua
 Core.lua

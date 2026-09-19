@@ -52,6 +52,7 @@ local function Initialize()
     if not store then ns.initError = err; print("Companion Chronicle: " .. err); return end
     ns.store, AlliesDB = store, store.saved
     ns.Controller:Create()
+    ns.MinimapButton:Create()
     ns.Recognition:Install()
     ns.Social:Install()
     ns.InstallMenus()

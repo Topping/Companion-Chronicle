@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1
+
+Companion Chronicle for WoW Forever 1.60.1 (Interface 16001).
+
+- Add a custom journal icon to the in-game addon list and a circular minimap
+  button. Click the button to open or close the journal; drag it around the
+  minimap to choose a position that is saved across sessions.
+- Keep `/companionchronicle` and `/cchron` as alternate ways to open the journal.
+
 ## 0.2.0
 
 Companion Chronicle for WoW Forever 1.60.1 (Interface 16001).
