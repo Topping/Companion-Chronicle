@@ -12,8 +12,10 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def check(tag=None, archive=None):
+def check(tag=None, archive=None, for_release=False):
     manifest = json.loads((ROOT / ".release-manifest.json").read_text())
+    if for_release and manifest.get("releaseBlockers"):
+        raise ValueError("Release blocked: " + "; ".join(manifest["releaseBlockers"]))
     expected_tag = manifest["tag"]
     if not re.fullmatch(r"v\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)[.\d]*)?", expected_tag):
         raise ValueError("Invalid release version")
@@ -71,9 +73,10 @@ def curseforge_check(manifest):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tag")
+    parser.add_argument("--for-release", action="store_true")
     parser.add_argument("--zip", type=Path)
     parser.add_argument("--curseforge-check", action="store_true")
     args = parser.parse_args()
-    result = check(args.tag, args.zip)
+    result = check(args.tag, args.zip, args.for_release)
     if args.curseforge_check:
         curseforge_check(result)

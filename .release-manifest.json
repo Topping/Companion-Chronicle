@@ -7,6 +7,9 @@
     "gameVersion": "1.60.1",
     "gameVersionTypeId": 88568
   },
+  "releaseBlockers": [
+    "Saved players and notes disappear after /reload on Forever 1.60.1.69913. Require successful real-client reload and restart persistence tests before release."
+  ],
   "addon": "CompanionChronicle",
   "interface": 16001,
   "packager": "e50a250f8705041e40f2fa1ddcb280a686d65aa0",
@@ -32,8 +35,8 @@
     "Views/Widgets.lua"
   ],
   "files": {
-    ".github/scripts/check_release.py": "aef15a6c59c00d33ad067560e05bf03240c1cfbe3f61f820552a68436f2b92b6",
-    ".github/workflows/release.yml": "d1cedfa6bb3af58f3790d3ad5dce17154cfa2a8dce9fa8b8943a4744ed23de98",
+    ".github/scripts/check_release.py": "0751e816974512c2d0967a2b60dcd73a28c98641faca937ed40165f0022dba40",
+    ".github/workflows/release.yml": "42dc14daeabbc3166ba0433a239e3eaf6ada3f3e38bcfac0d5e2f7773c0b8da5",
     ".pkgmeta": "cbbe7b06408a9cab94a393c4683b67ace002528fbdd2c201e76b3b113d1ee25d",
     "Art/ally.tga": "e196818bd35df63e9fd583bd62eca06346a9084b481656833d2bf71cd4be4337",
     "Art/chronicle-book.tga": "21e0c79dda7aabc3adaeee1e299b93f994800b86abd8417a526b0f4ce5ef739a",
@@ -48,7 +51,7 @@
     "Identity.lua": "2ad54accad8d04aebaf53e7071bff81d847acceec2e4f5da715065ed4dd6eb1c",
     "LICENSE": "650b849c2176170fc11da61a37809497ccd9b082602a96070f4a4a880184b825",
     "Model.lua": "274f795fc0b99e59523578b0e8488bbaef948e15633e99a1d249f4455ab3f776",
-    "README.md": "6943b2f6597b55e24005794451cd9bde40d7b3d9caba233bc81b399389fab5c3",
+    "README.md": "9393332646734b9de83fa8bc132d941dbdfb1d68f85436928c31afa8fc57f3b8",
     "Recognition.lua": "b7066c0144548e0d608807600868cefc2b5bec2f4e501e90d55ed85f8debb777",
     "Social.lua": "c374f9ef1f0bfbd74866f921bffcaea3c3476935c5a18378491b09bccc77cace",
     "UI.lua": "b44fb6777ef36baf3d96c3cf957ab840f6ad054b123851bba9523c3edd668877",

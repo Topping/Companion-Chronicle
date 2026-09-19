@@ -40,6 +40,7 @@ jobs:
             exit 1
           fi
           args=()
+          if [[ "$DRY_RUN" != true ]]; then args+=(--for-release); fi
           if [[ -n "$RELEASE_TAG" ]]; then args+=(--tag "$RELEASE_TAG"); fi
           python3 .github/scripts/check_release.py "${args[@]}"
           python3 - <<'PY'

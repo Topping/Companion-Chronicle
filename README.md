@@ -19,6 +19,10 @@ This addon is in development for **WoW Forever beta**, targeting Interface
 partial; combat, taint and server-dependent behavior need further validation.
 Development data is disposable, and migrations are not guaranteed.
 
+**Known release blocker:** On tested Forever beta build **1.60.1.69913**, saved
+players and notes disappear after `/reload`. Release publication is on hold
+while persistence is investigated; journal data is not currently reliable.
+
 ## Installation
 
 Download an addon ZIP from [Releases](https://github.com/Topping/Companion-Chronicle/releases)
