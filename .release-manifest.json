@@ -7,9 +7,7 @@
     "gameVersion": "1.60.1",
     "gameVersionTypeId": 88568
   },
-  "releaseBlockers": [
-    "Saved players and notes disappear after /reload on Forever 1.60.1.69913. Require successful real-client reload and restart persistence tests before release."
-  ],
+  "releaseBlockers": [],
   "addon": "CompanionChronicle",
   "interface": 16001,
   "packager": "e50a250f8705041e40f2fa1ddcb280a686d65aa0",
@@ -44,20 +42,20 @@
     "Art/leather.tga": "70c7f1717a96f8ee4a747fb726e0c35606ac9dead7e5f67fa04e3dc6ebb524a7",
     "Art/parchment.tga": "6c0f1c7598baab1d5b135f76ea482bfb93da4ae17c72b267adfffe16cfd31b35",
     "Art/positive.tga": "1bb6297709ef6f69a0c2f222b083103c59133bd1190c67ab8ba9781344edeb86",
-    "CHANGELOG.md": "1b7a556029c20702dfae940db2d7725f6d8242374b6e4997fa0bd482fe0f3785",
+    "CHANGELOG.md": "60b37c0761a79b5bb3b6cc948bb9d4e72b0d17029ee7336ebe3faa116bd64338",
     "CompanionChronicle.toc": "5b7fed3e5e1b8abe6534bfd0f7abbe7aa5a554abad88c89c4a67454ac79c7fd0",
     "Controller.lua": "b088eb462197848c0e61f5b5ed0d595c1d72f97927d30d396db3f732e3d255fa",
     "Core.lua": "48baf53ac213c4317f651f135d6c3f23f8d83335851989e0f52efd875c601293",
     "Identity.lua": "2ad54accad8d04aebaf53e7071bff81d847acceec2e4f5da715065ed4dd6eb1c",
     "LICENSE": "650b849c2176170fc11da61a37809497ccd9b082602a96070f4a4a880184b825",
     "Model.lua": "274f795fc0b99e59523578b0e8488bbaef948e15633e99a1d249f4455ab3f776",
-    "README.md": "9393332646734b9de83fa8bc132d941dbdfb1d68f85436928c31afa8fc57f3b8",
+    "README.md": "a48e52c25567e348f5340485596a964940412dca7679ee530f55dbf05af110e0",
     "Recognition.lua": "b7066c0144548e0d608807600868cefc2b5bec2f4e501e90d55ed85f8debb777",
     "Social.lua": "c374f9ef1f0bfbd74866f921bffcaea3c3476935c5a18378491b09bccc77cace",
-    "UI.lua": "b44fb6777ef36baf3d96c3cf957ab840f6ad054b123851bba9523c3edd668877",
+    "UI.lua": "4722c05106438748c3ad525957b8078ca9b020109def652c8a0a881a382e2747",
     "Views/Chronicle.lua": "c94b1d6e094fbd10c4111d9b2a55b24a0e82f81518716061311701a50f6ce694",
-    "Views/Layout.lua": "d4d23ab425261b236ec625c4498ac699a13fb669687d43d158876da9c6f33a85",
-    "Views/Modern.lua": "49921e8d780414712c404fd55a61192e94d721e3121963cd0ab701183c4395fb",
+    "Views/Layout.lua": "70e98d694cb1df193449b2c5306f561fee7b95c4d2e57798b72e543225d74011",
+    "Views/Modern.lua": "09f5061403cf6bac2a9929a1a43f3101781bc5b0bef2870b0732ce16e374f50d",
     "Views/Widgets.lua": "ea2ea2ab2d49bae64a91a9835d795cfcf84e1dd3621d43193c4026fe81d81fa7"
   }
 }

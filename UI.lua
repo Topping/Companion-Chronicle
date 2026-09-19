@@ -4,6 +4,49 @@ local Label, Button, Panel = W.Label, W.Button, W.Panel
 local UI = {}
 ns.UI = UI
 
+local function PaintChoice(button)
+    local selected = button.selected
+    button.selectionMark:SetShown(selected)
+    if selected then
+        button.fill:SetColorTexture(0.30, 0.21, 0.11)
+        button:GetFontString():SetTextColor(1, 0.95, 0.82)
+    else
+        button.fill:SetColorTexture(0.85, 0.76, 0.58)
+        button:GetFontString():SetTextColor(0.14, 0.095, 0.055)
+    end
+end
+
+local function SelectChoice(button, selected)
+    button.selected = selected
+    -- SetEnabled can synchronously fire OnLeave; hover handlers only paint.
+    button:SetEnabled(not selected)
+    PaintChoice(button)
+end
+
+local function Choice(parent, text, x, callback)
+    local button = Button(parent, text, x, -29, 96, callback)
+    button.selected = false
+    button.fill = W.Rect(button, "ARTWORK", 1, -1, 94, 22, 0.85, 0.76, 0.58)
+    button.selectionMark = W.Rect(button, "OVERLAY", 8, -22, 80, 2, 1, 0.85, 0.48)
+    button:SetScript("OnEnter", function()
+        if not button.selected then button.fill:SetColorTexture(0.95, 0.86, 0.67) end
+    end)
+    button:SetScript("OnLeave", function() PaintChoice(button) end)
+    return button
+end
+
+local function SettingsRow(parent, y, title, description)
+    local row = CreateFrame("Frame", nil, parent)
+    row:SetPoint("TOPLEFT", parent, "TOPLEFT", 24, y)
+    row:SetSize(572, 80)
+    W.Rect(row, "BACKGROUND", 0, 0, 572, 80, 0.98, 0.92, 0.76, 0.40)
+    W.Rect(row, "BORDER", 0, -79, 572, 1, 0.46, 0.33, 0.16, 0.35)
+    row.title = Label(row, title, 12, -10, 338, 22)
+    row.description = Label(row, description, 12, -35, 338, 34, "GameFontHighlightSmall")
+    row.description:SetJustifyV("TOP")
+    return row
+end
+
 function UI:Create()
     if self.editor then return end
     self.editor = Panel("CompanionChronicleNoteEditor", 580, 350)
@@ -18,7 +61,8 @@ function UI:Create()
     local note = scroll.EditBox
     self.noteBox = note
     note:SetWidth(504); note:SetAutoFocus(false); note:SetMaxLetters(500); note:SetFontObject("QuestFont")
-    note:SetTextColor(0.14, 0.095, 0.055); note:SetShadowOffset(0, 0); note.Instructions:SetText("")
+    -- InputScrollFrameTemplate has a dark fill, unlike the surrounding parchment.
+    note:SetTextColor(0.97, 0.93, 0.83, 1); note:SetShadowOffset(0, 0); note.Instructions:SetText("")
     note:SetScript("OnTextChanged", function(box) if not self.rendering then C:UpdateDraft(box:GetText()) end end)
     note:SetScript("OnEscapePressed", function() C:CancelEditor() end)
     self.editorError = Label(self.editor, "", 18, -276, 540, 22, "GameFontNormalSmall")
@@ -26,22 +70,30 @@ function UI:Create()
     self.cancelNote = Button(self.editor, "Cancel", 118, -310, 90, function() C:CancelEditor() end)
     self.editor:SetScript("OnHide", function() note:ClearFocus(); if not self.rendering then C:CancelEditor() end end)
 
-    self.settings = Panel("CompanionChronicleSettings", 460, 395)
+    self.settings = Panel("CompanionChronicleSettings", 620, 448)
     self.settings:SetFrameStrata("FULLSCREEN_DIALOG")
     Label(self.settings, "Companion Chronicle settings", 18, -12, 420, 26, "GameFontNormalLarge"):SetTextColor(0.97, 0.93, 0.83)
-    Label(self.settings, "Appearance", 18, -55, 150, 25)
-    self.immersiveToggle = Button(self.settings, "Immersive", 175, -55, 125, function() C:SetAppearance("immersive") end)
-    self.modernToggle = Button(self.settings, "Modern", 310, -55, 130, function() C:SetAppearance("modern") end)
-    Label(self.settings, "Ask for a note after Friendly / Unfriendly", 18, -95, 325, 40)
-    self.notePromptToggle = Button(self.settings, "Off", 355, -101, 85, function() C:ToggleNotePrompt() end)
-    Label(self.settings, "Off: save quietly. Add a note whenever you like.", 18, -145, 422, 30, "GameFontHighlightSmall")
-    Label(self.settings, "Recognize people in chat", 18, -185, 325, 26)
-    self.chatMarkersToggle = Button(self.settings, "On", 355, -185, 85, function() C:ToggleSetting("chatMarkers") end)
-    Label(self.settings, "Markers appear on new messages from remembered players.", 18, -217, 422, 30, "GameFontHighlightSmall")
-    Label(self.settings, "Remind me when we group together", 18, -263, 325, 26)
-    self.groupRemindersToggle = Button(self.settings, "On", 355, -263, 85, function() C:ToggleSetting("groupReminders") end)
-    Label(self.settings, "A private chat reminder for allies and people you have rated.", 18, -295, 422, 30, "GameFontHighlightSmall")
-    Button(self.settings, "Close", 350, -355, 90, function() C:Settings(false) end)
+    local appearance = SettingsRow(self.settings, -56, "Appearance", "Choose the look of your journal.")
+    self.immersiveToggle = Choice(appearance, "Immersive", 364, function() C:SetAppearance("immersive") end)
+    self.modernToggle = Choice(appearance, "Modern", 464, function() C:SetAppearance("modern") end)
+    self.settingRows = {}
+    local options = {
+        { "askForNotes", "Ask for notes after rating", "Open a note after Friendly or Unfriendly.\nWhen off, save the rating without a prompt." },
+        { "chatMarkers", "Recognize people in chat", "Mark new chat messages from people\nyou have remembered." },
+        { "groupReminders", "Group reminders", "Show a private chat reminder when you group\nwith allies or people you have rated." },
+    }
+    for i, option in ipairs(options) do
+        local key = option[1]
+        local row = SettingsRow(self.settings, -56 - i * 88, option[2], option[3])
+        local function Set(value)
+            if ns.store.saved.settings[key] ~= value then C:ToggleSetting(key) end
+        end
+        row.on = Choice(row, "On", 364, function() Set(true) end)
+        row.off = Choice(row, "Off", 464, function() Set(false) end)
+        self.settingRows[key] = row
+    end
+    Label(self.settings, "Changes are saved automatically.", 36, -411, 400, 20, "GameFontHighlightSmall")
+    self.settingsClose = Button(self.settings, "Close", 494, -408, 90, function() C:Settings(false) end)
     self.settings:SetScript("OnHide", function() if not self.rendering then C:Settings(false) end end)
 end
 
@@ -56,11 +108,12 @@ function UI:Render(state)
     W.StylePanel(self.settings, state.settings.appearance)
     view:Render(state)
     view.window:SetShown(state.visible)
-    self.immersiveToggle:SetEnabled(state.settings.appearance ~= "immersive")
-    self.modernToggle:SetEnabled(state.settings.appearance ~= "modern")
-    self.notePromptToggle:SetText(state.settings.askForNotes and "On" or "Off")
-    self.chatMarkersToggle:SetText(state.settings.chatMarkers and "On" or "Off")
-    self.groupRemindersToggle:SetText(state.settings.groupReminders and "On" or "Off")
+    SelectChoice(self.immersiveToggle, state.settings.appearance == "immersive")
+    SelectChoice(self.modernToggle, state.settings.appearance == "modern")
+    for key, row in pairs(self.settingRows) do
+        SelectChoice(row.on, state.settings[key])
+        SelectChoice(row.off, not state.settings[key])
+    end
     self.settings:SetShown(state.settingsOpen)
     local editing = state.editing
     local wasOpen = self.editor:IsShown()

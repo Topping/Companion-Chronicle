@@ -28,7 +28,7 @@ function Layout:Pages(entries, expanded, appearance)
     if font then self.measure:SetFont(font, size, flags) end
     self.measure:SetWidth(width)
     local pages, used = { {} }, 0
-    local budget = expanded and 252 or 300
+    local budget = 274
     -- Reserve a quiet footer above Chronicle's curved, worn page edge.
     if appearance == "immersive" then budget = 258 end
     for i = #entries, 1, -1 do
@@ -38,26 +38,19 @@ function Layout:Pages(entries, expanded, appearance)
         local noteHeight = 0
         if entry.note then
             self.measure:SetText(ns.Escape(entry.note))
-            noteHeight = appearance == "immersive"
-                and math.max(18, math.ceil(self.measure:GetStringHeight()) + 2)
-                or math.max(42, math.ceil(self.measure:GetStringHeight()) + 6)
-            -- Oversized imported text keeps a bounded preview and the full editor.
-            noteHeight = math.min(noteHeight, budget - (expanded and 84 or 30))
+            noteHeight = math.max(18, math.ceil(self.measure:GetStringHeight()) + 2)
         end
-        local height = (entry.note and noteHeight + 30 or 30) + (expanded and 54 or 0)
-        local detailsText, contextHeight
-        if appearance == "immersive" then
-            detailsText = self:EntryDetails(entry)
-            contextHeight = 0
-            if expanded then
-                if font then self.measure:SetFont(font, 10, flags) end
-                self.measure:SetWidth(240)
-                self.measure:SetText(ns.Escape(detailsText))
-                contextHeight = math.min(math.ceil(self.measure:GetStringHeight()) + 4, budget - 54)
-            end
-            noteHeight = math.min(noteHeight, budget - contextHeight - 54)
-            height = (entry.note and noteHeight + 28 or 28) + contextHeight + 16
+        local detailsText = self:EntryDetails(entry)
+        local contextHeight = 0
+        if expanded then
+            if font then self.measure:SetFont(font, 10, flags) end
+            self.measure:SetWidth(appearance == "immersive" and 240 or 392)
+            self.measure:SetText(ns.Escape(detailsText))
+            contextHeight = math.min(math.ceil(self.measure:GetStringHeight()) + 4, budget - 54)
         end
+        -- Oversized imported text keeps a bounded preview and the full editor.
+        noteHeight = math.min(noteHeight, budget - contextHeight - 54)
+        local height = (entry.note and noteHeight + 28 or 28) + contextHeight + 16
         if used + height > budget then pages[#pages + 1] = {}; used = 0 end
         pages[#pages][#pages[#pages] + 1] = { entry = entry, height = height, noteHeight = noteHeight,
             detailsText = detailsText, contextHeight = contextHeight }

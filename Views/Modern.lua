@@ -8,14 +8,6 @@ local function Reputation(record)
     return (record and record.ally and "Ally  ·  " or "") .. string.format("Rep %+d", M.Score(record))
 end
 
-local function EntryHeading(entry)
-    local parts = { entry.delta and string.format("%+d Rep", entry.delta) or "Note" }
-    local context = entry.context or {}
-    local place = context.instance or context.zone
-    if place then parts[#parts + 1] = place end
-    return ns.Escape(table.concat(parts, "  ·  "))
-end
-
 function Modern:Render(state)
     self.state = state
     local rows, pages = state.rows, state.pageCount
@@ -70,9 +62,7 @@ function Modern:RefreshDetails(state)
     local record = state.record
     self.detailTitle:SetText(state.showDetails and ns.DisplayName(identity) or ns.Escape(identity.name))
     self.detailScore:SetText(Reputation(record))
-    self.detailContext:SetText(ns.Escape(M.ContextText(selection.context)))
-    self.detailContext:SetShown(state.showDetails)
-    self.detailsToggle:SetText(state.showDetails and "Close details" or "Details")
+    self.detailsToggle:SetText(state.showDetails and "Hide details" or "Details")
     self.forget:SetShown(state.showDetails)
     self.ally:SetText(record and record.ally and "Unmark ally" or "Mark as ally")
     self.forget:SetText(state.forgetKey == identity.key and "Confirm forget" or "Forget character")
@@ -81,7 +71,7 @@ function Modern:RefreshDetails(state)
     self.historyNext:SetShown(state.entryPageCount > 1)
     self.historyPrevious:SetEnabled(state.entryPage > 1)
     self.historyNext:SetEnabled(state.entryPage < state.entryPageCount)
-    local offset = state.showDetails and 138 or 90
+    local offset = 118
     for i, row in ipairs(self.entryRows) do
         local item = state.entries[i]
         local entry = item and item.entry
@@ -92,13 +82,14 @@ function Modern:RefreshDetails(state)
             row:SetPoint("TOPLEFT", self.details, "TOPLEFT", 0, -offset)
             row:SetSize(490, item.height)
             offset = offset + item.height
-            row.title:SetText(EntryHeading(entry))
+            row.title:SetText(entry.delta and string.format("%+d Rep", entry.delta) or "Note")
             row.note:SetSize(490, item.noteHeight)
             row.note:SetText(ns.Escape(entry.note or ""))
             row.note:SetShown(entry.note ~= nil)
             row.edit:SetText(entry.note and "Read / edit" or "Add note")
             row.edit:Show()
-            row.context:SetText(ns.Escape(M.ContextText(entry.context)) .. "\nEncounter: " .. ns.When(entry.context.firstSeen) .. " / Saved: " .. ns.When(entry.createdAt))
+            row.context:SetText(ns.Escape(item.detailsText))
+            row.context:SetHeight(item.contextHeight)
             row.context:ClearAllPoints()
             local metadataY = entry.note and item.noteHeight + 28 or 28
             row.context:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -metadataY)
@@ -106,6 +97,8 @@ function Modern:RefreshDetails(state)
             row.delete:ClearAllPoints()
             row.delete:SetPoint("TOPLEFT", row, "TOPLEFT", 400, -metadataY)
             row.delete:SetShown(state.showDetails)
+            row.divider:ClearAllPoints()
+            row.divider:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -item.height + 6)
         end
     end
 end
@@ -169,20 +162,28 @@ function Modern:Create()
     self.details = details
     self.detailTitle = Label(details, "", 0, 0, 480, 25, "QuestTitleFont")
     self.detailScore = Label(details, "", 0, -27, 480, 20)
-    self.detailContext = Label(details, "", 0, -84, 490, 46, "GameFontHighlightSmall")
     self.ratePositive = Button(details, "Friendly", 0, -54, 78, function() if C.selection then C:Rate(C.selection.identity, 1, C.selection.context) end end)
     self.rateNegative = Button(details, "Unfriendly", 83, -54, 90, function() if C.selection then C:Rate(C.selection.identity, -1, C.selection.context) end end)
     Button(details, "Add note", 178, -54, 85, function() if C.selection then C:OpenEditor(C.selection.identity, C.selection.context) end end)
     self.ally = Button(details, "Mark as ally", 268, -54, 110, function() C:ToggleAlly() end)
     self.forget = Button(details, "Forget character", 0, -398, 145, function() C:Forget() end)
-    self.detailsToggle = Button(details, "Details", 383, -54, 107, function() C:ToggleDetails() end)
+    Rect(details, "ARTWORK", 0, -84, 490, 1, 0.39, 0.25, 0.12, 0.3)
+    Label(details, "WHAT IS REMEMBERED", 0, -89, 380, 20, "GameFontNormalSmall")
+    self.detailsToggle = Button(details, "Details", 400, -87, 90, function() C:ToggleDetails() end)
     self.entryRows = {}
     for i = 1, 10 do
         local row = CreateFrame("Frame", nil, details)
         row:SetSize(490, 30)
         row.title = Label(row, "", 0, -3, 392, 20, "GameFontNormalSmall")
-        row.context = Label(row, "", 0, -28, 392, 50, "GameFontHighlightSmall")
-        row.note = Label(row, "", 0, -26, 490, 42, "QuestFont")
+        local titleFont, _, titleFlags = row.title:GetFont()
+        if titleFont then row.title:SetFont(titleFont, 12, titleFlags) end
+        row.context = Label(row, "", 0, -28, 392, 50, "QuestFont")
+        row.note = Label(row, "", 0, -24, 490, 42, "QuestFont")
+        row.note:SetJustifyV("TOP")
+        row.context:SetJustifyV("TOP")
+        row.context:SetTextColor(0.38, 0.29, 0.19)
+        local contextFont, _, contextFlags = row.context:GetFont()
+        if contextFont then row.context:SetFont(contextFont, 10, contextFlags) end
         local font, _, flags = row.note:GetFont()
         if font then row.note:SetFont(font, 14, flags) end
         row.edit = Button(row, "Read / edit", 400, 0, 90, function()
@@ -193,6 +194,7 @@ function Modern:Create()
                 C:DeleteEntry(row.entry.id)
             end
         end)
+        row.divider = Rect(row, "ARTWORK", 0, -80, 490, 1, 0.39, 0.25, 0.12, 0.3)
         self.entryRows[i] = row
     end
     self.historyPage = Label(details, "", 260, -400, 100, 20, "GameFontHighlightSmall")

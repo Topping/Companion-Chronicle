@@ -2,48 +2,30 @@
 
 ## 0.1.0
 
-- Rebrand the addon to Companion Chronicle, packaged as CompanionChronicle.
-  Use `/companionchronicle`; `/cchron` is the short alias. Development data is
-  disposable; no migration from Allies is planned.
+First public release of Companion Chronicle for WoW Forever beta 1.60.1
+(Interface 16001).
 
-- Chronicle uses consistent first-name/surname typography, simplified uppercase
-  page headings and the single dedication “Names worth keeping.”
+- Record friendly and unfriendly encounters from supported player menus, keep
+  optional notes, mark allies, and undo the last rating.
+- Browse remembered players and recent encounters in the illustrated Chronicle
+  journal or compact Modern layout. Open with `/companionchronicle` or `/cchron`.
+- Recognize remembered players through private chat markers, group reminders,
+  tooltips, target indicators and supported friendly nameplates.
+- Switch appearance and recognition options in Settings, with explicit On/Off
+  choices and clear selection indicators. Fix recursive hover callbacks when
+  selecting settings on the Forever client.
+- Improve note-editor contrast in both appearances and use measured, paginated
+  history layouts with separated entry details and compact note previews.
+- Keep personal records local and partitioned by client build. Recent encounters
+  are session-only; targeting a player does not record an encounter.
 
-- Chronicle client polish: page actions raised above the lower parchment edge,
-  with history space reserved; stitched leather bookmarks replace square tabs.
+Known limitations:
 
-- Immersive Chronicle is the default appearance: textured leather-bound book,
-  parchment pages, a two-column index and native quest typography. Modern remains
-  available in Settings. Appearance persists without changing player records.
-- Shared controller separates ratings, Undo, note drafts and settings from both
-  native views. Switching preserves drafts, selection and the visible memory;
-  view-owned font measurement prevents fixed-height note clipping.
-- Docker simulator verification is now exercised alongside static and packaging
-  gates, including both appearances, large histories and headless actions.
-
-- Private chat recognition markers and group reunion reminders, independently
-  switchable in Allies settings. Group reminders include a short saved note.
-
-- Chat menus support Forever full names and missing realms using the sender's
-  GUID; later unit encounters share the same personal history and indicators.
-
-- Field journal skin: generated leather/parchment, dark ink, quest fonts and
-  selected-person/tab indicators across journal, notes and settings.
-
-- Friendly/Unfriendly actions save silently; optional note prompting in Allies
-  Settings defaults Off. Undo last is available in the player menu.
-
-- Generated positive-rep and ally textures at 24 UI units on nameplates and target frames.
-
-- Compact journal: explicit rep and location, content-sized entries, direct note
-  editing; full metadata and deletion controls available through Details.
-
-- Forever beta test target: Interface 16001; explicit beta deployment directory.
-- Targeting a player only refreshes recognition; it does not record an encounter.
-
-- Allies POC: personal +/− reputation, optional notes, Undo and explicit ally status.
-- Native player menu actions; on-demand Recent and Remembered views via `/allies`.
-- Bounded session-only context history, original-context preservation and persistent personal records.
-- Private friendly nameplate badges, target indicator and tooltip summaries.
-- Exact-client-build data isolation for the POC while Forever identification remains unverified.
-- Supplemental model/interaction regressions; live acceptance and container simulation pending.
+- On tested Forever beta build 1.60.1.69913, saved players and notes disappear
+  after `/reload`. This is being treated as a client SavedVariables regression
+  pending a Blizzard fix; journal data is unreliable on this build.
+- Client testing is partial. Combat, taint, server-dependent behavior and the
+  latest visual fixes still need real-client validation. Headless checks do not
+  establish client persistence or rendering correctness.
+- Compatibility with other clients is not claimed. Development data is
+  disposable, and migrations from the earlier Allies prototype are not provided.
