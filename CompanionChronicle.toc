@@ -1,4 +1,4 @@
-## Interface: 120100
+## Interface: 16001
 ## Title: Companion Chronicle
 ## Notes: Personal reputation, optional notes and recognition. Open from the minimap or with /cchron.
 ## Author: Addon Developer
@@ -8,7 +8,7 @@
 ## SavedVariables: AlliesDB
 
 Model.lua
-ClientRetail.lua
+ClientForever.lua
 Identity.lua
 Controller.lua
 Views/Widgets.lua
