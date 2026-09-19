@@ -1,7 +1,7 @@
 name: Release Companion Chronicle
 on:
   push:
-    tags: ['v*']
+    tags: ['retail-v*', 'forever-v*']
   workflow_dispatch:
     inputs:
       tag:
@@ -49,6 +49,7 @@ jobs:
           assert re.fullmatch('[0-9a-f]{40}', m['packager'])
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write('packager=' + m['packager'] + '\n')
+              f.write('flavor=' + m['flavor'] + '\n')
           PY
           if [[ -z "$RELEASE_TAG" ]]; then
             tag=$(python3 -c 'import json; print(json.load(open(".release-manifest.json"))["tag"])')
@@ -68,11 +69,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          env -u GITHUB_ACTIONS bash .packager/release.sh -d -e -l -u -r "$RUNNER_TEMP/package"
+          env -u GITHUB_ACTIONS bash .packager/release.sh -d -e -l -u -g '${{ steps.source.outputs.flavor }}' -r "$RUNNER_TEMP/package"
           shopt -s nullglob
           archives=("$RUNNER_TEMP/package/"*.zip)
           test "${#archives[@]}" -eq 1
-          python3 .github/scripts/check_release.py --zip "${archives[0]}"
+          python3 .github/scripts/check_release.py --zip "${archives[0]}" --notes-output "$RUNNER_TEMP/release-notes.md"
       - name: Check CurseForge configuration
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
@@ -86,17 +87,25 @@ jobs:
           fi
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: CompanionChronicle-preview
+          name: CompanionChronicle-${{ steps.source.outputs.flavor }}-preview
           path: ${{ runner.temp }}/package/*.zip
           retention-days: 7
           if-no-files-found: error
-      - name: Publish tagged release to GitHub and CurseForge
+      - name: Publish the inspected ZIP to GitHub and CurseForge
         if: env.DRY_RUN != 'true'
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
-          GITHUB_OAUTH: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          # Same pinned packager and source as the checked build; no external libraries/localizations.
-          env -u GITHUB_ACTIONS bash .packager/release.sh -e -l -u -r "$RUNNER_TEMP/published"
+          shopt -s nullglob
+          archives=("$RUNNER_TEMP/package/"*.zip)
+          test "${#archives[@]}" -eq 1
+          python3 .github/scripts/check_release.py --for-release --tag "$RELEASE_TAG" --zip "${archives[0]}" --curseforge-check
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${archives[0]}" --clobber
+          else
+            gh release create "$RELEASE_TAG" "${archives[0]}" --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi
+          python3 .github/scripts/check_release.py --for-release --tag "$RELEASE_TAG" --zip "${archives[0]}" --upload-curseforge

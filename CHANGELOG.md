@@ -1,5 +1,21 @@
 # Changelog
 
+## Forever 0.3.0
+
+- Keep Forever first and last names together in stable Forever-only saved data.
+- Share the journal and recognition code with a separately packaged Retail edition.
+- Require verified chat line identity before showing player actions.
+
+## Retail 0.3.0
+
+- Add a Retail package for Interface 120100 with realms kept separate from player names.
+- Use stable Retail-only saved data and verified unit or original chat-line identity.
+- Resolve same-realm unit menus when Retail omits the server and confirms
+  the unit is on the player's realm.
+- Size the minimap artwork to fit Retail's smaller controls while retaining its
+  click and drag area.
+- Share the journal, recognition and interaction code with the Forever edition.
+
 ## 0.2.1
 
 Companion Chronicle for WoW Forever 1.60.1 (Interface 16001).

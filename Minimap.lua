@@ -34,7 +34,9 @@ function MinimapButton:Create()
     button:RegisterForDrag("LeftButton")
 
     local icon = button:CreateTexture(nil, "ARTWORK")
-    icon:SetAllPoints()
+    local iconSize = ns.Client.minimapIconSize or 32
+    icon:SetSize(iconSize, iconSize)
+    icon:SetPoint("CENTER", button, "CENTER")
     icon:SetTexture(iconPath)
     button.icon = icon
 

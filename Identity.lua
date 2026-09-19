@@ -22,18 +22,11 @@ function ns.UnitIdentity(unit)
     if ns.Read(UnitIsUnit, unit, "player") ~= false then return nil end
     local ok, name, realm = pcall(UnitFullName, unit)
     if not ok then return nil end
-    name, realm = ns.Text(name), ns.Text(realm)
+    name = ns.Text(name)
+    if not ns.Public(realm) then return nil end
+    realm = type(realm) == "string" and realm or nil
     local guid = ns.Text(ns.Read(UnitGUID, unit))
-    -- Forever 16001 live target probes return first name, surname, with no
-    -- realm. Already-combined names retain the separately observed contract.
-    if ns.foreverNames and name and not name:find("%s") then
-        if name == UNKNOWN or not realm then return nil end
-        return ns.Model.Identity(name .. " " .. realm, nil, guid)
-    end
-    -- UnitFullName supplies the realm for accessible live units. Do not turn
-    -- unavailable/secret realm data into a guessed local-realm identity.
-    if not name or name == UNKNOWN or not realm then return nil end
-    return ns.Model.Identity(name, realm, guid)
+    return ns.Client.UnitName(name, realm, guid, unit)
 end
 
 function ns.MenuIdentity(data)
@@ -43,36 +36,35 @@ function ns.MenuIdentity(data)
     if not ns.Public(data.name) or not ns.Public(data.server) or not ns.Public(data.guid) then return nil end
     local name, realm = ns.Text(data.name), ns.Text(data.server)
     if not name or name == UNKNOWN then return nil end
-    local splitName, splitRealm = name:match("^([^-]+)%-(.+)$")
-    if splitName then name, realm = splitName, splitRealm end
     local guid = ns.Text(data.guid)
     -- The native chat menu passes a line ID, not a GUID. Resolve that line
     -- without recording chat content or subscribing to a chat stream.
-    if C_ChatInfo and ns.Public(data.lineID) then
+    if data.lineID ~= nil then
+        if not C_ChatInfo or not ns.Public(data.lineID) then return nil end
         local lineID = tonumber(data.lineID)
         if lineID then
             local senderGUID = ns.Text(ns.Read(C_ChatInfo.GetChatLineSenderGUID, lineID))
             if guid and senderGUID and guid ~= senderGUID then return nil end
             guid = guid or senderGUID
             local sender = ns.Text(ns.Read(C_ChatInfo.GetChatLineSenderName, lineID))
-            if sender then
-                local senderName, senderRealm = sender:match("^([^-]+)%-(.+)$")
-                if (senderName or sender) ~= name then return nil end
-                if senderName and senderName == name then
-                    if realm and realm:gsub("%s", "") ~= senderRealm:gsub("%s", "") then return nil end
-                    realm = senderRealm
-                end
-            end
-        end
+            -- A line ID without a public sender and GUID cannot establish the
+            -- identity of the original chat author.
+            if not sender or not senderGUID then return nil end
+            local menuIdentity = ns.Client.MenuName(name, realm, guid)
+            local lineIdentity = ns.Client.MenuName(sender, nil, senderGUID)
+            if not menuIdentity or not lineIdentity or not ns.Model.SameIdentity(menuIdentity, lineIdentity)
+                or menuIdentity.name ~= lineIdentity.name
+                or (menuIdentity.realm ~= "" and lineIdentity.realm ~= "" and menuIdentity.realm ~= lineIdentity.realm) then return nil end
+            name, realm = lineIdentity.name, lineIdentity.realm
+        else return nil end
     end
-    -- Forever GUID name lookups do not reliably supply full names or realms.
-    -- Retain the chat name and use the sender GUID when the realm is absent.
-    local identity = ns.Model.Identity(name, realm, guid)
+    local identity = ns.Client.MenuName(name, realm, guid)
     if not identity then return nil end
     local ok, selfName, selfRealm = pcall(UnitFullName, "player")
     if not ok then return nil end
     local selfGUID = ns.Text(ns.Read(UnitGUID, "player"))
-    local selfIdentity = ns.Model.Identity(ns.Text(selfName), ns.Text(selfRealm), selfGUID)
+    if not ns.Public(selfRealm) then return nil end
+    local selfIdentity = ns.Client.UnitName(ns.Text(selfName), type(selfRealm) == "string" and selfRealm or nil, selfGUID, "player")
     if not selfIdentity or ns.Model.SameIdentity(selfIdentity, identity) then return nil end
     if identity.realm == "" and not selfGUID then return nil end
     return identity
@@ -110,6 +102,31 @@ function ns.DebugMenu(data, identity)
     print("Companion Chronicle lookup: sender=" .. describe(sender) .. " guid=" .. (guid and "present" or "missing")
         .. " stored name=" .. describe(record and record.name)
         .. " realm=" .. describe(record and record.realm))
+    if ns.Public(data.unit) and type(data.unit) == "string" then
+        local function probe(fn, ...)
+            if type(fn) ~= "function" then return "<unavailable>", "<unavailable>" end
+            local ok, first, second = pcall(fn, ...)
+            if not ok then return "<error>", "<error>" end
+            return describe(first), describe(second)
+        end
+        local function guidState(unit)
+            local ok, value = pcall(UnitGUID, unit)
+            if not ok then return "error" end
+            if not ns.Public(value) then return "restricted" end
+            return ns.Text(value) and "present" or "missing"
+        end
+        local unit = data.unit
+        local name, server = probe(UnitFullName, unit)
+        print("Companion Chronicle unit: player=" .. probe(UnitIsPlayer, unit)
+            .. " self=" .. probe(UnitIsUnit, unit, "player")
+            .. " name=" .. name .. " server=" .. server
+            .. " relation=" .. probe(UnitRealmRelationship, unit)
+            .. " guid=" .. guidState(unit))
+        local selfName, selfServer = probe(UnitFullName, "player")
+        print("Companion Chronicle self: name=" .. selfName .. " server=" .. selfServer
+            .. " localRealm=" .. probe(GetNormalizedRealmName)
+            .. " guid=" .. guidState("player"))
+    end
 end
 
 function ns.GroupSnapshot()

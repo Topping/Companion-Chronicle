@@ -13,7 +13,6 @@ function ns.Changed()
     end
 end
 
-local menuTags = { "PLAYER", "ENEMY_PLAYER", "PARTY", "RAID_PLAYER", "RAID", "FRIEND" }
 function ns.BuildMenu(_, root, data)
     if not ns.store then return end
     local identity = ns.MenuIdentity(data)
@@ -34,20 +33,13 @@ function ns.BuildMenu(_, root, data)
 end
 
 function ns.InstallMenus()
-    if ns.menusInstalled or not Menu or not Menu.ModifyMenu then return end
-    ns.menusInstalled = true
-    for _, tag in ipairs(menuTags) do
-        Menu.ModifyMenu("MENU_UNIT_" .. tag, ns.BuildMenu)
-    end
+    if not ns.menusInstalled then ns.menusInstalled = ns.Client.RegisterMenus(ns.BuildMenu) end
 end
 
 local function Initialize()
     if ns.store or ns.initError then return end
-    local _, build, _, interface = GetBuildInfo()
-    ns.foreverNames = interface == 16001
-    -- Exact-build partitions avoid merging Retail/Forever identities when clients
-    -- share a SavedVariables directory. POC deliberately performs no migration.
-    ns.partition = tostring(WOW_PROJECT_ID) .. ":" .. tostring(interface) .. ":" .. tostring(build)
+    -- Stable flavor partitions survive future client build and Interface updates.
+    ns.partition = ns.Client.partition
     local store, err = ns.Model.Open(AlliesDB, ns.partition)
     if not store then ns.initError = err; print("Companion Chronicle: " .. err); return end
     ns.store, AlliesDB = store, store.saved

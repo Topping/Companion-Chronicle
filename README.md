@@ -17,7 +17,7 @@ decide what to think of someone based on combat.
 
 ## Getting started
 
-Download an addon ZIP from [Releases](https://github.com/Topping/Companion-Chronicle/releases),
+Download the Retail or Forever addon ZIP for your client from [Releases](https://github.com/Topping/Companion-Chronicle/releases),
 unzip it into your World of Warcraft `Interface/AddOns` folder, and enable
 **Companion Chronicle** in game. Use the release ZIP rather than GitHub's
 automatically generated source archive.
@@ -32,6 +32,6 @@ nameplate reminders, enable friendly nameplates in the game settings.
 
 ## Feedback
 
-Companion Chronicle is made for WoW Forever. If you find a bug or have an idea,
+Companion Chronicle has separate Retail and WoW Forever editions. If you find a bug or have an idea,
 I'd love to hear it in [Issues](https://github.com/Topping/Companion-Chronicle/issues).
 The exported source is available here under the [MIT license](LICENSE).
