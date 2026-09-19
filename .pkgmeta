@@ -1,0 +1,26 @@
+package-as: CompanionChronicle
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+ignore:
+  - .packager
+  - .release-manifest.json
+  - release
+  - .agents
+  - .codex
+  - .github
+  - .wowdev
+  - .vscode
+  - docs
+  - tests
+  - tools
+  - .env
+  - .env.example
+  - .gitignore
+  - .gitattributes
+  - .wowluarc.json
+  - wowdev.json
+  - tools.lock.json
+  - tool-setup.md
+  - AGENTS.md
+  - README.md

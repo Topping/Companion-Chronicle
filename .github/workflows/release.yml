@@ -1,0 +1,101 @@
+name: Release Companion Chronicle
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag (leave empty only for a preview of main)
+        required: false
+      dry_run:
+        description: Validate and package without publishing
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: public-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate exported source and select packager
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$DRY_RUN" != true && -z "$RELEASE_TAG" ]]; then
+            echo 'Publishing requires an existing version tag' >&2
+            exit 1
+          fi
+          args=()
+          if [[ -n "$RELEASE_TAG" ]]; then args+=(--tag "$RELEASE_TAG"); fi
+          python3 .github/scripts/check_release.py "${args[@]}"
+          python3 - <<'PY'
+          import json, os, re
+          m = json.load(open('.release-manifest.json'))
+          assert re.fullmatch('[0-9a-f]{40}', m['packager'])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('packager=' + m['packager'] + '\n')
+          PY
+          if [[ -z "$RELEASE_TAG" ]]; then
+            tag=$(python3 -c 'import json; print(json.load(open(".release-manifest.json"))["tag"])')
+            if git show-ref --verify --quiet "refs/tags/$tag"; then
+              test "$(git rev-parse "$tag^{commit}")" = "$(git rev-parse HEAD)"
+            else
+              git -c user.name=Preview -c user.email=preview@localhost tag -a "$tag" -m 'Local preview only'
+            fi
+          fi
+      - uses: actions/checkout@v4
+        with:
+          repository: BigWigsMods/packager
+          ref: ${{ steps.source.outputs.packager }}
+          path: .packager
+          persist-credentials: false
+      - name: Build without uploads
+        shell: bash
+        run: |
+          set -euo pipefail
+          env -u GITHUB_ACTIONS bash .packager/release.sh -d -e -l -u -r "$RUNNER_TEMP/package"
+          shopt -s nullglob
+          archives=("$RUNNER_TEMP/package/"*.zip)
+          test "${#archives[@]}" -eq 1
+          python3 .github/scripts/check_release.py --zip "${archives[0]}"
+      - name: Check CurseForge configuration
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "$CF_API_KEY" || "$DRY_RUN" != true ]]; then
+            python3 .github/scripts/check_release.py --curseforge-check
+          else
+            echo 'CurseForge connectivity SKIPPED: CF_API_KEY is not configured' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CompanionChronicle-preview
+          path: ${{ runner.temp }}/package/*.zip
+          retention-days: 7
+          if-no-files-found: error
+      - name: Publish tagged release to GitHub and CurseForge
+        if: env.DRY_RUN != 'true'
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          GITHUB_OAUTH: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Same pinned packager and source as the checked build; no external libraries/localizations.
+          env -u GITHUB_ACTIONS bash .packager/release.sh -e -l -u -r "$RUNNER_TEMP/published"
