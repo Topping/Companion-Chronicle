@@ -5,11 +5,10 @@ local Modern = {}
 ns.Views = ns.Views or {}
 ns.Views.modern = Modern
 local function Reputation(record)
-    return (record and record.ally and "Ally  ·  " or "") .. string.format("Rep %+d", M.Score(record))
+    return (record and record.ally and "Ally  ·  " or "") .. string.format("Rep %+d", record and record.score or 0)
 end
 
 function Modern:Render(state)
-    self.state = state
     local rows, pages = state.rows, state.pageCount
     self.listPage:SetText(pages > 1 and ("Page " .. state.page .. " of " .. pages) or "")
     self.listPrevious:SetShown(pages > 1)
@@ -25,12 +24,12 @@ function Modern:Render(state)
             local selected = state.selection and M.SameIdentity(state.selection.identity, row.identity)
             button.selectionMark:SetShown(selected == true)
             button.background:SetColorTexture(0.49, 0.33, 0.13, selected and 0.20 or 0.035)
-            local record = row.record
-            button.repLabel:SetText(M.Remembered(record) and Reputation(record) or "")
+            local summary = row.summary
+            button.repLabel:SetText(summary and Reputation(summary) or "")
             if row.context then
                 button.infoLabel:SetText(ns.Escape(row.context.zone or ""))
             else
-                local latest = M.Latest(record)
+                local latest = summary and summary.latest
                 button.infoLabel:SetText(ns.Escape(latest and (latest.note or latest.context.instance or latest.context.zone) or ""))
             end
         end
@@ -66,40 +65,10 @@ function Modern:RefreshDetails(state)
     self.forget:SetShown(state.showDetails)
     self.ally:SetText(record and record.ally and "Unmark ally" or "Mark as ally")
     self.forget:SetText(state.forgetKey == identity.key and "Confirm forget" or "Forget character")
-    self.historyPage:SetText(state.entryPageCount > 1 and (state.entryPage .. " / " .. state.entryPageCount) or "")
-    self.historyPrevious:SetShown(state.entryPageCount > 1)
-    self.historyNext:SetShown(state.entryPageCount > 1)
-    self.historyPrevious:SetEnabled(state.entryPage > 1)
-    self.historyNext:SetEnabled(state.entryPage < state.entryPageCount)
+    W.RenderHistoryPager(self, state)
     local offset = 118
     for i, row in ipairs(self.entryRows) do
-        local item = state.entries[i]
-        local entry = item and item.entry
-        row.entry = entry
-        row:SetShown(entry ~= nil)
-        if entry then
-            row:ClearAllPoints()
-            row:SetPoint("TOPLEFT", self.details, "TOPLEFT", 0, -offset)
-            row:SetSize(490, item.height)
-            offset = offset + item.height
-            row.title:SetText(entry.delta and string.format("%+d Rep", entry.delta) or "Note")
-            row.note:SetSize(490, item.noteHeight)
-            row.note:SetText(ns.Escape(entry.note or ""))
-            row.note:SetShown(entry.note ~= nil)
-            row.edit:SetText(entry.note and "Read / edit" or "Add note")
-            row.edit:Show()
-            row.context:SetText(ns.Escape(item.detailsText))
-            row.context:SetHeight(item.contextHeight)
-            row.context:ClearAllPoints()
-            local metadataY = entry.note and item.noteHeight + 28 or 28
-            row.context:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -metadataY)
-            row.context:SetShown(state.showDetails)
-            row.delete:ClearAllPoints()
-            row.delete:SetPoint("TOPLEFT", row, "TOPLEFT", 400, -metadataY)
-            row.delete:SetShown(state.showDetails)
-            row.divider:ClearAllPoints()
-            row.divider:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -item.height + 6)
-        end
+        offset = W.RenderHistoryRow(row, state.entries[i], self.details, offset, 490, 400, state.showDetails)
     end
 end
 

@@ -17,6 +17,22 @@ function Layout:EntryDetails(entry)
 end
 
 function Layout:Pages(entries, expanded, appearance)
+    local cached = self.cached
+    if cached and cached.entries == entries and cached.expanded == expanded
+        and cached.appearance == appearance and #cached.fingerprint == #entries then
+        local unchanged = true
+        for i, entry in ipairs(entries) do
+            local old, context = cached.fingerprint[i], entry.context
+            if old.entry ~= entry or old.note ~= entry.note or old.createdAt ~= entry.createdAt
+                or old.zone ~= context.zone or old.subzone ~= context.subzone
+                or old.instance ~= context.instance or old.instanceType ~= context.instanceType
+                or old.group ~= context.group or old.sharedGroup ~= context.sharedGroup then
+                unchanged = false
+                break
+            end
+        end
+        if unchanged then return cached.pages end
+    end
     local width, size = 490, 14
     if appearance == "immersive" then width, size = 350, 15 end
     if not self.measure then
@@ -56,5 +72,17 @@ function Layout:Pages(entries, expanded, appearance)
             detailsText = detailsText, contextHeight = contextHeight }
         used = used + height
     end
+    local fingerprint = {}
+    for i, entry in ipairs(entries) do
+        local context = entry.context
+        fingerprint[i] = {
+            entry = entry, note = entry.note, createdAt = entry.createdAt,
+            zone = context.zone, subzone = context.subzone, instance = context.instance,
+            instanceType = context.instanceType, group = context.group,
+            sharedGroup = context.sharedGroup,
+        }
+    end
+    self.cached = { entries = entries, expanded = expanded, appearance = appearance,
+        fingerprint = fingerprint, pages = pages }
     return pages
 end

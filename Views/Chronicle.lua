@@ -177,7 +177,7 @@ function Chronicle:Render(state)
         local row = state.rows[i]; button.row = row; button:SetShown(row ~= nil)
         if row then
             local first, surname = NameLines(row.identity)
-            local rep = M.Remembered(row.record) and string.format(" · %+d", M.Score(row.record)) or ""
+            local rep = row.summary and string.format(" · %+d", row.summary.score) or ""
             button.nameLabel:SetText(first .. (surname == "" and rep or ""))
             button.surnameLabel:SetText(surname .. (surname ~= "" and rep or ""))
             button.surnameLabel:SetShown(surname ~= "")
@@ -188,7 +188,7 @@ function Chronicle:Render(state)
             button.selectionMark:SetShown(selected == true)
             button.nameLabel:SetTextColor(selected and 0.47 or 0.19, selected and 0.16 or 0.12, 0.065)
             local info = ns.Escape(row.identity.realm)
-            if row.record and row.record.ally then info = info .. (info ~= "" and " · " or "") .. "Ally" end
+            if row.summary and row.summary.ally then info = info .. (info ~= "" and " · " or "") .. "Ally" end
             button.infoLabel:SetText(info)
         end
     end
@@ -220,31 +220,13 @@ function Chronicle:Render(state)
     self.detailRealm:SetSize(350, surname ~= "" and 14 or 20)
     self.detailRealm:SetJustifyV("TOP")
     self.detailRealm:SetText(ns.Escape(identity.realm))
-    self.detailScore:SetText(string.format("Rep %+d", M.Score(record)))
+    self.detailScore:SetText(string.format("Rep %+d", record and record.score or 0))
     self.ally:SetText(record and record.ally and "Ally · unmark" or "Mark as ally")
     self.detailsToggle:SetText(state.showDetails and "Hide details" or "Details")
     self.forget:SetShown(state.showDetails); self.forget:SetText(state.forgetKey == identity.key and "Confirm forget" or "Forget character")
     local offset = 134
     for i, row in ipairs(self.entryRows) do
-        local item = state.entries[i]; row.entry = item and item.entry; row:SetShown(item ~= nil)
-        if item then
-            local e = item.entry
-            row:ClearAllPoints(); row:SetPoint("TOPLEFT", self.details, "TOPLEFT", 0, -offset); row:SetSize(350, item.height)
-            offset = offset + item.height
-            row.title:SetText(e.delta and string.format("%+d Rep", e.delta) or "Note")
-            row.note:SetSize(350, item.noteHeight)
-            row.note:SetText(ns.Escape(e.note or "")); row.note:SetShown(e.note ~= nil)
-            row.edit:SetText(e.note and "Read / edit" or "Add note")
-            row.context:SetText(ns.Escape(item.detailsText))
-            row.context:SetHeight(item.contextHeight)
-            local metadataY = e.note and item.noteHeight + 28 or 28
-            row.context:ClearAllPoints(); row.context:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -metadataY)
-            row.delete:ClearAllPoints(); row.delete:SetPoint("TOPLEFT", row, "TOPLEFT", 244, -metadataY)
-            row.divider:ClearAllPoints(); row.divider:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -item.height + 6)
-            row.context:SetShown(state.showDetails); row.delete:SetShown(state.showDetails)
-        end
+        offset = W.RenderHistoryRow(row, state.entries[i], self.details, offset, 350, 244, state.showDetails)
     end
-    self.historyPage:SetText(state.entryPageCount > 1 and (state.entryPage .. " / " .. state.entryPageCount) or "")
-    self.historyPrevious:SetShown(state.entryPageCount > 1); self.historyNext:SetShown(state.entryPageCount > 1)
-    self.historyPrevious:SetEnabled(state.entryPage > 1); self.historyNext:SetEnabled(state.entryPage < state.entryPageCount)
+    W.RenderHistoryPager(self, state)
 end

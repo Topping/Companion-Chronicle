@@ -2,7 +2,7 @@
 ## Title: Companion Chronicle
 ## Notes: Personal reputation, optional notes and recognition. Open with /companionchronicle.
 ## Author: Addon Developer
-## Version: 0.1.0
+## Version: 0.2.0
 ## X-Curse-Project-ID: 1703274
 ## SavedVariables: AlliesDB
 

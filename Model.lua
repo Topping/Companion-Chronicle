@@ -9,6 +9,11 @@ function Model.Copy(value)
     return result
 end
 
+function Model.IdentityFields(identity)
+    if not identity then return nil end
+    return { key = identity.key, name = identity.name, realm = identity.realm, guid = identity.guid }
+end
+
 function Model.Identity(name, realm, guid)
     if type(name) ~= "string" or name == "" then return end
     guid = type(guid) == "string" and guid:match("^Player%-%d+%-%x+$") or nil
@@ -26,6 +31,74 @@ function Model.SameIdentity(a, b)
     return a.key == b.key
 end
 
+function Model.IndexIdentity(index, identity)
+    if identity.guid then index.byGUID[identity.guid] = identity end
+    local bucket = index.byKey[identity.key]
+    if not bucket then bucket = {}; index.byKey[identity.key] = bucket end
+    bucket[#bucket + 1] = identity
+end
+
+function Model.IdentityIndex(identities)
+    local index = { byGUID = {}, byKey = {} }
+    for _, identity in ipairs(identities) do Model.IndexIdentity(index, identity) end
+    return index
+end
+
+function Model.FindIdentity(index, identity)
+    if identity.guid and index.byGUID[identity.guid] then return index.byGUID[identity.guid] end
+    for _, candidate in ipairs(index.byKey[identity.key] or {}) do
+        if Model.SameIdentity(candidate, identity) then return candidate end
+    end
+end
+
+local function Finite(value)
+    return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge
+end
+
+local contextStrings = { "reason", "zone", "subzone", "instance", "instanceType", "group" }
+local function ValidContext(context)
+    if type(context) ~= "table" then return false end
+    for _, field in ipairs(contextStrings) do
+        if context[field] ~= nil and type(context[field]) ~= "string" then return false end
+    end
+    if context.sharedGroup ~= nil and type(context.sharedGroup) ~= "boolean" then return false end
+    if context.roster ~= nil and (not Finite(context.roster) or context.roster < 0 or context.roster % 1 ~= 0) then return false end
+    for _, field in ipairs({ "firstSeen", "lastSeen" }) do
+        if context[field] ~= nil and not Finite(context[field]) then return false end
+    end
+    return true
+end
+
+local function DenseEntries(entries)
+    if type(entries) ~= "table" then return false end
+    local count = 0
+    for index in pairs(entries) do
+        if type(index) ~= "number" or not Finite(index) or index < 1 or index % 1 ~= 0 then return false end
+        count = count + 1
+    end
+    for index = 1, count do if entries[index] == nil then return false end end
+    return true
+end
+
+local function ValidRecordKey(key, record)
+    local current = Model.Identity(record.name, record.realm, record.guid)
+    if not current then return false end
+    if key == current.key then return true end
+    -- A GUID-only chat record keeps its original storage key when a realm
+    -- becomes available later.
+    if record.guid and key == "guid:" .. record.guid then return true end
+    -- Earlier surname-as-realm records also retain their storage key after a
+    -- verified full-name repair. Its two old name parts must still spell the
+    -- corrected full name once whitespace is removed.
+    if record.guid and record.realm == "" and key == key:lower() then
+        local first, second = key:match("^([^-]+)%-(.+)$")
+        if first and (first .. second):gsub("%s", "") == record.name:lower():gsub("%s", "") then
+            return true
+        end
+    end
+    return false
+end
+
 function Model.Open(saved, partition)
     if saved == nil then saved = { version = 1, partitions = {} } end
     if type(saved) ~= "table" or saved.version ~= 1 or type(saved.partitions) ~= "table" then
@@ -34,20 +107,24 @@ function Model.Open(saved, partition)
     if saved.settings ~= nil and type(saved.settings) ~= "table" then
         return nil, "Invalid settings; existing data was preserved."
     end
-    local db = saved.partitions[partition]
-    if not db then
-        db = { characters = {}, nextEntry = 1 }
-        saved.partitions[partition] = db
+    for _, field in ipairs({ "askForNotes", "chatMarkers", "groupReminders" }) do
+        if saved.settings and saved.settings[field] ~= nil and type(saved.settings[field]) ~= "boolean" then
+            return nil, "Invalid settings; existing data was preserved."
+        end
     end
-    if type(db) ~= "table" or type(db.characters) ~= "table" or type(db.nextEntry) ~= "number"
+    local db = saved.partitions[partition]
+    if db == nil then db = { characters = {}, nextEntry = 1 } end
+    if type(db) ~= "table" or type(db.characters) ~= "table" or not Finite(db.nextEntry)
         or db.nextEntry < 1 or db.nextEntry % 1 ~= 0 then
         return nil, "Invalid saved-data partition; existing data was preserved."
     end
     local seenIDs = {}
     for key, record in pairs(db.characters) do
-        if type(record) ~= "table" or type(record.name) ~= "string" or type(record.realm) ~= "string"
-            or record.key ~= key or type(record.entries) ~= "table" or type(record.ally) ~= "boolean"
-            or (record.realm == "" and not Model.Identity(record.name, nil, record.guid)) then
+        if type(key) ~= "string" or key == "" or type(record) ~= "table"
+            or type(record.name) ~= "string" or record.name == "" or type(record.realm) ~= "string"
+            or record.key ~= key or not DenseEntries(record.entries) or type(record.ally) ~= "boolean"
+            or (record.guid ~= nil and (type(record.guid) ~= "string" or not record.guid:match("^Player%-%d+%-%x+$")))
+            or not ValidRecordKey(key, record) then
             return nil, "Invalid character record; existing data was preserved."
         end
         for _, entry in ipairs(record.entries) do
@@ -55,12 +132,14 @@ function Model.Open(saved, partition)
                 or entry.id % 1 ~= 0 or entry.id >= db.nextEntry or seenIDs[entry.id]
                 or (entry.delta ~= nil and entry.delta ~= 1 and entry.delta ~= -1)
                 or (entry.note ~= nil and type(entry.note) ~= "string")
-                or type(entry.createdAt) ~= "number" or type(entry.context) ~= "table" then
+                or not Finite(entry.createdAt) or (entry.editedAt ~= nil and not Finite(entry.editedAt))
+                or not ValidContext(entry.context) then
                 return nil, "Invalid history entry; existing data was preserved."
             end
             seenIDs[entry.id] = true
         end
     end
+    saved.partitions[partition] = db
     saved.settings = saved.settings or {}
     if saved.settings.appearance ~= "modern" and saved.settings.appearance ~= "immersive" then saved.settings.appearance = "immersive" end
     if saved.settings.askForNotes == nil then saved.settings.askForNotes = false end
@@ -81,7 +160,11 @@ function Model:Get(identity)
             end
         end
     end
-    record = record or self.db.characters[identity.key]
+    local keyed = self.db.characters[identity.key]
+    if record and keyed and record ~= keyed and not keyed.guid then
+        return nil, "Multiple records identify this character; existing data was preserved."
+    end
+    record = record or keyed
     if record and record.guid and identity.guid and record.guid ~= identity.guid then
         return nil, "Character identity changed. Review the existing record before adding another entry."
     end
@@ -94,7 +177,10 @@ local function ReconcileIdentity(record, identity)
     local repaired = record.guid and record.guid == identity.guid
         and record.realm ~= "" and identity.realm == ""
         and (record.name .. record.realm):gsub("%s", "") == identity.name:gsub("%s", "")
-    if repaired or (record.realm == "" and identity.realm ~= "") then
+    if identity.guid and not record.guid then record.guid = identity.guid end
+    -- A captured pre-repair identity retains the storage key. It cannot undo
+    -- the correction merely because it still carries the old realm.
+    if repaired or (record.realm == "" and identity.realm ~= "" and identity.key ~= record.key) then
         record.name, record.realm = identity.name, identity.realm
     end
 end
@@ -107,8 +193,6 @@ function Model:Ensure(identity)
         record = Model.Copy(identity)
         record.ally, record.entries = false, {}
         self.db.characters[identity.key] = record
-    elseif identity.guid and not record.guid then
-        record.guid = identity.guid
     end
     ReconcileIdentity(record, identity)
     return record
@@ -173,11 +257,15 @@ end
 
 function Model:Delete(identity, entryID)
     local record = self:Get(identity)
-    local _, index = self:Entry(identity, entryID)
-    if not record or not index then return false end
-    table.remove(record.entries, index)
-    if not Model.Remembered(record) then self.db.characters[record.key] = nil end
-    return true
+    if not record then return false end
+    for index, entry in ipairs(record.entries) do
+        if entry.id == entryID then
+            table.remove(record.entries, index)
+            if not Model.Remembered(record) then self.db.characters[record.key] = nil end
+            return true
+        end
+    end
+    return false
 end
 
 function Model:SetAlly(identity, value)

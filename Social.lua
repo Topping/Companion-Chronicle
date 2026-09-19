@@ -75,11 +75,11 @@ end
 function Social:CheckGroup(units, group, complete)
     if group == "Solo" and complete then self.members = {}; return end
     local current, reminders, count = {}, {}, 0
+    local previous = M.IdentityIndex(self.members)
     for _, entry in ipairs(units) do
         local identity = entry.identity
-        local key = identity.guid or identity.key
-        current[key] = true
-        if not self.members[key] and ns.store.saved.settings.groupReminders then
+        current[#current + 1] = M.IdentityFields(identity)
+        if not M.FindIdentity(previous, identity) and ns.store.saved.settings.groupReminders then
             local record = ns.store:Get(identity)
             local impression = Impression(record)
             if impression then
@@ -92,10 +92,24 @@ function Social:CheckGroup(units, group, complete)
                 end
             end
         end
-        self.members[key] = true
     end
     -- Missing/restricted units are not evidence that someone left the group.
-    if complete then self.members = current end
+    if complete then
+        self.members = current
+    else
+        for _, identity in ipairs(current) do
+            local known = M.FindIdentity(previous, identity)
+            if known then
+                if identity.guid and not known.guid then
+                    known.guid = identity.guid
+                    previous.byGUID[identity.guid] = known
+                end
+            else
+                self.members[#self.members + 1] = identity
+                M.IndexIdentity(previous, identity)
+            end
+        end
+    end
     if count > 3 then reminders[#reminders + 1] = (count - 3) .. " more remembered players" end
     if count > 0 then print("Companion Chronicle — In your group: " .. table.concat(reminders, "; ")) end
 end

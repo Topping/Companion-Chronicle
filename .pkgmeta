@@ -12,6 +12,7 @@ ignore:
   - .wowdev
   - .vscode
   - docs
+  - images
   - tests
   - tools
   - .env

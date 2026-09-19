@@ -87,7 +87,7 @@ events:SetScript("OnEvent", function(_, event, arg)
         if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then ns.Recognition:Discover() end
         ns.Recognition:Refresh()
     end
-    ns.Controller:Refresh()
+    ns.Controller:Refresh(true)
 end)
 
 local elapsedTotal = 0
@@ -98,7 +98,7 @@ events:SetScript("OnUpdate", function(_, elapsed)
     elapsedTotal = 0
     ns.store:Prune(ns.Now())
     ns.ObserveGroup()
-    ns.Controller:Refresh()
+    ns.Controller:Refresh(true)
 end)
 
 SLASH_COMPANIONCHRONICLE1 = "/companionchronicle"

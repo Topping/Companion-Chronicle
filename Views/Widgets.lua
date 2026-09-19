@@ -40,8 +40,6 @@ function W.Button(parent, text, x, y, width, callback)
     return button
 end
 
-local Button = W.Button
-
 function W.Panel(name, width, height)
     local panel = CreateFrame("Frame", name, UIParent)
     panel:SetSize(width, height)
@@ -80,4 +78,41 @@ function W.StylePanel(panel, appearance)
         panel.paper:SetTexCoord(0, 1, 0, 1)
         panel.paper:SetVertexColor(0.82, 0.78, 0.69)
     end
+end
+
+function W.RenderHistoryRow(row, item, parent, offset, width, deleteX, showDetails)
+    local entry = item and item.entry
+    row.entry = entry
+    row:SetShown(entry ~= nil)
+    if not entry then return offset end
+    row:ClearAllPoints()
+    row:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -offset)
+    row:SetSize(width, item.height)
+    row.title:SetText(entry.delta and string.format("%+d Rep", entry.delta) or "Note")
+    row.note:SetSize(width, item.noteHeight)
+    row.note:SetText(ns.Escape(entry.note or ""))
+    row.note:SetShown(entry.note ~= nil)
+    row.edit:SetText(entry.note and "Read / edit" or "Add note")
+    row.edit:Show()
+    local metadataY = entry.note and item.noteHeight + 28 or 28
+    row.context:SetText(ns.Escape(item.detailsText))
+    row.context:SetHeight(item.contextHeight)
+    row.context:ClearAllPoints()
+    row.context:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -metadataY)
+    row.context:SetShown(showDetails)
+    row.delete:ClearAllPoints()
+    row.delete:SetPoint("TOPLEFT", row, "TOPLEFT", deleteX, -metadataY)
+    row.delete:SetShown(showDetails)
+    row.divider:ClearAllPoints()
+    row.divider:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -item.height + 6)
+    return offset + item.height
+end
+
+function W.RenderHistoryPager(view, state)
+    local multiple = state.entryPageCount > 1
+    view.historyPage:SetText(multiple and (state.entryPage .. " / " .. state.entryPageCount) or "")
+    view.historyPrevious:SetShown(multiple)
+    view.historyNext:SetShown(multiple)
+    view.historyPrevious:SetEnabled(state.entryPage > 1)
+    view.historyNext:SetEnabled(state.entryPage < state.entryPageCount)
 end

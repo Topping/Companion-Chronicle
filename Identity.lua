@@ -113,7 +113,7 @@ function ns.DebugMenu(data, identity)
 end
 
 function ns.GroupSnapshot()
-    local units, identities, keys = {}, {}, {}
+    local units, identities, keys = {}, ns.Model.IdentityIndex({}), {}
     local raid = ns.Read(IsInRaid)
     local grouped = ns.Read(IsInGroup)
     local group = grouped == false and "Solo" or nil
@@ -128,7 +128,7 @@ function ns.GroupSnapshot()
                 local identity = ns.UnitIdentity(unit)
                 if identity then
                     units[#units + 1] = { unit = unit, identity = identity }
-                    identities[identity.guid or identity.key] = true
+                    ns.Model.IndexIdentity(identities, identity)
                     keys[#keys + 1] = identity.key
                 else complete = false end
             end
@@ -143,21 +143,33 @@ function ns.GroupSnapshot()
     return units, identities, group, complete, ns.rosterVersion
 end
 
-function ns.Context(identity, reason)
-    local _, members, group, complete, roster = ns.GroupSnapshot()
-    local context = {
-        reason = reason, zone = ns.Text(ns.Read(GetZoneText)),
-        subzone = ns.Text(ns.Read(GetSubZoneText)), group = group, roster = roster,
+local function ContextBatch(members, group, complete, roster)
+    local batch = {
+        members = members, group = group, complete = complete, roster = roster,
+        zone = ns.Text(ns.Read(GetZoneText)), subzone = ns.Text(ns.Read(GetSubZoneText)),
     }
-    if members[identity.guid or identity.key] then context.sharedGroup = true
-    elseif complete then context.sharedGroup = false end
     local ok, instanceName, instanceType = pcall(GetInstanceInfo)
     if ok then
         instanceType = ns.Text(instanceType)
         if instanceType and instanceType ~= "none" then
-            context.instance, context.instanceType = ns.Text(instanceName), instanceType
+            batch.instance, batch.instanceType = ns.Text(instanceName), instanceType
         end
     end
+    return batch
+end
+
+function ns.Context(identity, reason, batch)
+    if not batch then
+        local _, members, group, complete, roster = ns.GroupSnapshot()
+        batch = ContextBatch(members, group, complete, roster)
+    end
+    local context = {
+        reason = reason, zone = batch.zone, subzone = batch.subzone,
+        group = batch.group, roster = batch.roster,
+        instance = batch.instance, instanceType = batch.instanceType,
+    }
+    if ns.Model.FindIdentity(batch.members, identity) then context.sharedGroup = true
+    elseif batch.complete then context.sharedGroup = false end
     return context
 end
 
@@ -172,8 +184,14 @@ end
 
 function ns.ObserveGroup()
     if not ns.store then return end
-    local units, _, group, complete = ns.GroupSnapshot()
-    for _, entry in ipairs(units) do ns.Observe(entry.identity, "Group member") end
+    local units, members, group, complete, roster = ns.GroupSnapshot()
+    if #units > 0 then
+        local batch = ContextBatch(members, group, complete, roster)
+        local now = ns.Now()
+        for _, entry in ipairs(units) do
+            ns.store:Observe(entry.identity, ns.Context(entry.identity, "Group member", batch), now)
+        end
+    end
     ns.Social:CheckGroup(units, group, complete)
 end
 

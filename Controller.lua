@@ -5,7 +5,16 @@ local C = { view = "Remembered", page = 1, entryPage = 1, query = "", alliesOnly
     showDetails = false, visible = false, settingsOpen = false, message = "" }
 ns.Controller = C
 
-function C:Refresh() if ns.UI then ns.UI:Render(self:Snapshot()) end end
+function C:Refresh(background)
+    if not ns.UI then return end
+    if self.visible then
+        ns.UI:Render(self:Snapshot())
+    else
+        if background and not self.settingsOpen and not self.editing then return end
+        ns.UI:Render({ visible = false, settingsOpen = self.settingsOpen,
+            settings = M.Copy(ns.store.saved.settings), editing = M.Copy(self.editing) }, true)
+    end
+end
 function C:Message(message)
     self.message = message or ""
     if not self.visible then print("Companion Chronicle: " .. ns.Escape(self.message)) end
@@ -15,7 +24,7 @@ function C:Create() ns.UI:Create(); self:Refresh() end
 function C:ToggleWindow() self.visible = not self.visible; self.forgetKey = nil; self:Refresh() end
 function C:Close() self.visible = false; self.forgetKey = nil; self:Refresh() end
 function C:Select(identity, context)
-    self.selection = { identity = M.Copy(identity), context = M.Copy(context or {}) }
+    self.selection = { identity = M.IdentityFields(identity), context = M.Copy(context or {}) }
     self.entryPage, self.showDetails, self.forgetKey, self.message = 1, false, nil, ""
     self.entryAnchor = nil
     self:Refresh()
@@ -32,17 +41,19 @@ function C:SetView(view)
     self:Refresh()
 end
 function C:SetQuery(query) self.query, self.page = query, 1; self:Refresh() end
-function C:ToggleFilter() self.alliesOnly = not self.alliesOnly; self.view, self.page = "Remembered", 1; self:Refresh() end
 function C:ToggleDetails() self.showDetails, self.entryPage, self.entryAnchor = not self.showDetails, 1, nil; self:Refresh() end
 function C:Page(delta) self.page = math.max(1, self:Snapshot().page + delta); self:Refresh() end
 function C:EntryPage(delta) self.entryPage = math.max(1, self:Snapshot().entryPage + delta); self.entryAnchor = nil; self:Refresh() end
 function C:Settings(open) self.settingsOpen = open; self:Refresh() end
-function C:ToggleSetting(key)
-    if key ~= "askForNotes" and key ~= "chatMarkers" and key ~= "groupReminders" then return end
-    ns.store.saved.settings[key] = not ns.store.saved.settings[key]; self:Refresh()
+function C:SetSetting(key, value)
+    if key ~= "askForNotes" and key ~= "chatMarkers" and key ~= "groupReminders"
+        or type(value) ~= "boolean" then return false end
+    if ns.store.saved.settings[key] ~= value then
+        ns.store.saved.settings[key] = value
+        self:Refresh()
+    end
+    return true
 end
-function C:ToggleNotePrompt() self:ToggleSetting("askForNotes") end
-function C:RefreshSettings() self:Refresh() end
 function C:SetAppearance(appearance)
     if appearance ~= "immersive" and appearance ~= "modern" then return false end
     if ns.store.saved.settings.appearance == appearance then return true end
@@ -57,7 +68,7 @@ function C:Rate(identity, delta, context)
     if not ns.store then return end
     local entry, err = ns.store:Add(identity, delta, nil, context, ns.Now())
     if not entry then self:Message(err or "Unable to save rating."); return end
-    self.confirmation = { identity = M.Copy(identity), entryID = entry.id, context = M.Copy(entry.context) }
+    self.confirmation = { identity = M.IdentityFields(identity), entryID = entry.id, context = M.Copy(entry.context) }
     ns.Changed()
     if ns.store.saved.settings.askForNotes == true and not self.editing then self:OpenEditor(identity, entry.context, entry.id) end
 end
@@ -74,7 +85,7 @@ function C:OpenEditor(identity, context, entryID)
     -- Opening the same editor preserves its draft; target/selection changes do not redirect it.
     if self.editing and M.SameIdentity(self.editing.identity, identity) and self.editing.entryID == entryID then self:Refresh(); return end
     if self.editing then self:Message("Save or cancel the open note before editing another person."); return end
-    self.editing = { identity = M.Copy(identity), context = M.Copy(context or {}), entryID = entryID, text = entry and entry.note or "", error = "" }
+    self.editing = { identity = M.IdentityFields(identity), context = M.Copy(context or {}), entryID = entryID, text = entry and entry.note or "", error = "" }
     self:Refresh()
 end
 function C:UpdateDraft(text) if self.editing then self.editing.text = text end end
@@ -106,7 +117,7 @@ function C:DeleteEntry(entryID)
     ns.Changed()
 end
 function C:Forget()
-    if not self.selection then return end
+    if not self.selection or not self.selection.identity then return end
     local identity = self.selection.identity
     if self.forgetKey ~= identity.key then
         self.forgetKey = identity.key
@@ -122,7 +133,8 @@ end
 
 function C:Snapshot()
     local s = { view = self.view, query = self.query, alliesOnly = self.alliesOnly, showDetails = self.showDetails,
-        visible = self.visible, settingsOpen = self.settingsOpen, message = self.message, selection = self.selection,
+        visible = self.visible, settingsOpen = self.settingsOpen, message = self.message,
+        selection = self.selection and { identity = M.IdentityFields(self.selection.identity), context = self.selection.context },
         editing = self.editing, forgetKey = self.forgetKey, rows = {}, settings = ns.store.saved.settings }
     local rows = {}
     if self.view == "Recent" then
@@ -140,10 +152,19 @@ function C:Snapshot()
     s.pageCount = math.max(1, math.ceil(#rows / 8)); s.page = math.min(self.page, s.pageCount); s.total = #rows
     for i = (s.page - 1) * 8 + 1, math.min(s.page * 8, #rows) do
         local row = rows[i]
-        s.rows[#s.rows + 1] = { identity = row.identity, context = row.context, record = ns.store:Get(row.identity), duplicateName = names[row.identity.name] > 1 }
+        local record = ns.store:Get(row.identity)
+        local latest = M.Latest(record)
+        s.rows[#s.rows + 1] = {
+            identity = M.IdentityFields(row.identity), context = row.context,
+            summary = record and { ally = record.ally, score = M.Score(record),
+                latest = latest and { note = latest.note, context = latest.context } },
+            duplicateName = names[row.identity.name] > 1,
+        }
     end
-    s.record = self.selection and ns.store:Get(self.selection.identity)
-    local pages = ns.Layout:Pages(s.record and s.record.entries or {}, self.showDetails, s.settings.appearance)
+    local selectedRecord = self.selection and ns.store:Get(self.selection.identity)
+    if selectedRecord then s.selection.identity = M.IdentityFields(selectedRecord) end
+    s.record = selectedRecord and { ally = selectedRecord.ally, score = M.Score(selectedRecord) }
+    local pages = ns.Layout:Pages(selectedRecord and selectedRecord.entries or {}, self.showDetails, s.settings.appearance)
     s.entryPageCount = #pages; s.entryPage = math.min(self.entryPage, #pages)
     if self.entryAnchor then
         for page, items in ipairs(pages) do

@@ -63,7 +63,11 @@ function UI:Create()
     note:SetWidth(504); note:SetAutoFocus(false); note:SetMaxLetters(500); note:SetFontObject("QuestFont")
     -- InputScrollFrameTemplate has a dark fill, unlike the surrounding parchment.
     note:SetTextColor(0.97, 0.93, 0.83, 1); note:SetShadowOffset(0, 0); note.Instructions:SetText("")
-    note:SetScript("OnTextChanged", function(box) if not self.rendering then C:UpdateDraft(box:GetText()) end end)
+    local nativeTextChanged = note:GetScript("OnTextChanged")
+    note:SetScript("OnTextChanged", function(box, ...)
+        if nativeTextChanged then nativeTextChanged(box, ...) end
+        if not self.rendering then C:UpdateDraft(box:GetText()) end
+    end)
     note:SetScript("OnEscapePressed", function() C:CancelEditor() end)
     self.editorError = Label(self.editor, "", 18, -276, 540, 22, "GameFontNormalSmall")
     self.saveNote = Button(self.editor, "Save", 18, -310, 90, function() C:SaveEditor() end)
@@ -85,11 +89,8 @@ function UI:Create()
     for i, option in ipairs(options) do
         local key = option[1]
         local row = SettingsRow(self.settings, -56 - i * 88, option[2], option[3])
-        local function Set(value)
-            if ns.store.saved.settings[key] ~= value then C:ToggleSetting(key) end
-        end
-        row.on = Choice(row, "On", 364, function() Set(true) end)
-        row.off = Choice(row, "Off", 464, function() Set(false) end)
+        row.on = Choice(row, "On", 364, function() C:SetSetting(key, true) end)
+        row.off = Choice(row, "Off", 464, function() C:SetSetting(key, false) end)
         self.settingRows[key] = row
     end
     Label(self.settings, "Changes are saved automatically.", 36, -411, 400, 20, "GameFontHighlightSmall")
@@ -97,33 +98,36 @@ function UI:Create()
     self.settings:SetScript("OnHide", function() if not self.rendering then C:Settings(false) end end)
 end
 
-function UI:Render(state)
+function UI:Render(state, skipJournal)
     if not self.editor then return end
     self.rendering = true
-    local view = ns.Views[state.settings.appearance] or ns.Views.immersive
-    if not view.window then view:Create() end
-    if self.active ~= view and self.active then self.active.window:Hide() end
-    self.active = view
-    W.StylePanel(self.editor, state.settings.appearance)
-    W.StylePanel(self.settings, state.settings.appearance)
-    view:Render(state)
-    view.window:SetShown(state.visible)
-    SelectChoice(self.immersiveToggle, state.settings.appearance == "immersive")
-    SelectChoice(self.modernToggle, state.settings.appearance == "modern")
-    for key, row in pairs(self.settingRows) do
-        SelectChoice(row.on, state.settings[key])
-        SelectChoice(row.off, not state.settings[key])
-    end
-    self.settings:SetShown(state.settingsOpen)
-    local editing = state.editing
-    local wasOpen = self.editor:IsShown()
-    if editing then
-        self.editorTitle:SetText("Note for " .. ns.DisplayName(editing.identity))
-        self.editorContext:SetText(ns.Escape(editing.context.zone or ""))
-        self.editorError:SetText(ns.Escape(editing.error))
-        if self.noteBox:GetText() ~= editing.text then self.noteBox:SetText(editing.text) end
-    end
-    self.editor:SetShown(editing ~= nil)
-    if editing and not wasOpen then self.noteBox:SetCursorPosition(0); self.noteScroll:SetVerticalScroll(0); self.noteBox:SetFocus() end
+    local ok, err = pcall(function()
+        local view = ns.Views[state.settings.appearance] or ns.Views.immersive
+        if not view.window then view:Create() end
+        if self.active ~= view and self.active then self.active.window:Hide() end
+        self.active = view
+        W.StylePanel(self.editor, state.settings.appearance)
+        W.StylePanel(self.settings, state.settings.appearance)
+        if not skipJournal then view:Render(state) end
+        view.window:SetShown(state.visible)
+        SelectChoice(self.immersiveToggle, state.settings.appearance == "immersive")
+        SelectChoice(self.modernToggle, state.settings.appearance == "modern")
+        for key, row in pairs(self.settingRows) do
+            SelectChoice(row.on, state.settings[key])
+            SelectChoice(row.off, not state.settings[key])
+        end
+        self.settings:SetShown(state.settingsOpen)
+        local editing = state.editing
+        local wasOpen = self.editor:IsShown()
+        if editing then
+            self.editorTitle:SetText("Note for " .. ns.DisplayName(editing.identity))
+            self.editorContext:SetText(ns.Escape(editing.context.zone or ""))
+            self.editorError:SetText(ns.Escape(editing.error))
+            if self.noteBox:GetText() ~= editing.text then self.noteBox:SetText(editing.text) end
+        end
+        self.editor:SetShown(editing ~= nil)
+        if editing and not wasOpen then self.noteBox:SetCursorPosition(0); self.noteScroll:SetVerticalScroll(0); self.noteBox:SetFocus() end
+    end)
     self.rendering = false
+    if not ok then error(err, 0) end
 end
