@@ -16,17 +16,19 @@ function Layout:EntryDetails(entry)
     return ns.When(entry.createdAt) .. " · " .. group .. "\n" .. location
 end
 
-function Layout:Pages(entries, expanded, appearance)
+function Layout:Pages(entries, expanded, appearance, canonicalName, rpVisible)
     local cached = self.cached
     if cached and cached.entries == entries and cached.expanded == expanded
-        and cached.appearance == appearance and #cached.fingerprint == #entries then
+        and cached.appearance == appearance and cached.canonicalName == canonicalName
+        and cached.rpVisible == rpVisible and #cached.fingerprint == #entries then
         local unchanged = true
         for i, entry in ipairs(entries) do
             local old, context = cached.fingerprint[i], entry.context
             if old.entry ~= entry or old.note ~= entry.note or old.createdAt ~= entry.createdAt
                 or old.zone ~= context.zone or old.subzone ~= context.subzone
                 or old.instance ~= context.instance or old.instanceType ~= context.instanceType
-                or old.group ~= context.group or old.sharedGroup ~= context.sharedGroup then
+                or old.group ~= context.group or old.sharedGroup ~= context.sharedGroup
+                or old.persona ~= (context.rp and context.rp.displayName) then
                 unchanged = false
                 break
             end
@@ -47,8 +49,13 @@ function Layout:Pages(entries, expanded, appearance)
     local budget = 274
     -- Reserve a quiet footer above Chronicle's curved, worn page edge.
     if appearance == "immersive" then budget = 258 end
+    if rpVisible then budget = budget - 24 end
     for i = #entries, 1, -1 do
         local entry = entries[i]
+        local displayName = entry.context.rp and entry.context.rp.displayName
+        local personaText = displayName and displayName:lower() ~= (canonicalName or ""):lower()
+            and ("As " .. displayName) or nil
+        local personaHeight = personaText and 16 or 0
         if font then self.measure:SetFont(font, size, flags) end
         self.measure:SetWidth(width)
         local noteHeight = 0
@@ -65,11 +72,12 @@ function Layout:Pages(entries, expanded, appearance)
             contextHeight = math.min(math.ceil(self.measure:GetStringHeight()) + 4, budget - 54)
         end
         -- Oversized imported text keeps a bounded preview and the full editor.
-        noteHeight = math.min(noteHeight, budget - contextHeight - 54)
-        local height = (entry.note and noteHeight + 28 or 28) + contextHeight + 16
+        noteHeight = math.min(noteHeight, budget - contextHeight - personaHeight - 54)
+        local height = (entry.note and noteHeight + 28 or 28) + personaHeight + contextHeight + 16
         if used + height > budget then pages[#pages + 1] = {}; used = 0 end
         pages[#pages][#pages[#pages] + 1] = { entry = entry, height = height, noteHeight = noteHeight,
-            detailsText = detailsText, contextHeight = contextHeight }
+            detailsText = detailsText, contextHeight = contextHeight,
+            personaText = personaText, personaHeight = personaHeight }
         used = used + height
     end
     local fingerprint = {}
@@ -80,9 +88,11 @@ function Layout:Pages(entries, expanded, appearance)
             zone = context.zone, subzone = context.subzone, instance = context.instance,
             instanceType = context.instanceType, group = context.group,
             sharedGroup = context.sharedGroup,
+            persona = context.rp and context.rp.displayName,
         }
     end
     self.cached = { entries = entries, expanded = expanded, appearance = appearance,
+        canonicalName = canonicalName, rpVisible = rpVisible,
         fingerprint = fingerprint, pages = pages }
     return pages
 end

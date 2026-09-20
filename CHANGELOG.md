@@ -1,5 +1,13 @@
 # Changelog
 
+## Retail 0.4.0
+
+- Add an independently checkable Total RP 3 companion addon. It shows the
+  current RP name in character details and adds an action to the TRP3 target frame.
+- Save a small RP name snapshot with new journal entries while the companion
+  addon is enabled. The main journal remains usable when it is disabled.
+- Keep the Delete character button visible in both journal appearances.
+
 ## Forever 0.3.1
 
 - Add a saved journal size slider with choices from 70% to 110% in both appearances.

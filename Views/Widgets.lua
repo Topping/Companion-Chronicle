@@ -89,12 +89,16 @@ function W.RenderHistoryRow(row, item, parent, offset, width, deleteX, showDetai
     row:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, -offset)
     row:SetSize(width, item.height)
     row.title:SetText(entry.delta and string.format("%+d Rep", entry.delta) or "Note")
+    row.persona:SetText(ns.Escape(item.personaText))
+    row.persona:SetShown(item.personaText ~= nil)
     row.note:SetSize(width, item.noteHeight)
+    row.note:ClearAllPoints()
+    row.note:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -24 - item.personaHeight)
     row.note:SetText(ns.Escape(entry.note or ""))
     row.note:SetShown(entry.note ~= nil)
     row.edit:SetText(entry.note and "Read / edit" or "Add note")
     row.edit:Show()
-    local metadataY = entry.note and item.noteHeight + 28 or 28
+    local metadataY = (entry.note and item.noteHeight + 28 or 28) + item.personaHeight
     row.context:SetText(ns.Escape(item.detailsText))
     row.context:SetHeight(item.contextHeight)
     row.context:ClearAllPoints()

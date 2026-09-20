@@ -19,8 +19,12 @@ decide what to think of someone based on combat.
 
 Download the Retail or Forever addon ZIP for your client from [Releases](https://github.com/Topping/Companion-Chronicle/releases),
 unzip it into your World of Warcraft `Interface/AddOns` folder, and enable
-**Companion Chronicle** in game. Use the release ZIP rather than GitHub's
-automatically generated source archive.
+**Companion Chronicle** in game. The ZIP also installs **Companion Chronicle:
+Total RP 3** as a separate checkbox under Companion Chronicle in WoW's AddOns
+list. Enable it to show live TRP3 names and save the active persona with new
+journal entries; it requires Total RP 3. Changing the checkbox takes effect
+after reload. Use the release ZIP rather than GitHub's automatically generated
+source archive.
 
 Click the book icon beside the minimap to open the journal, or use `/cchron` or
 `/companionchronicle`. Drag the button around the minimap to move it; its position

@@ -74,11 +74,19 @@ function C:SetJournalSize(size)
 end
 function C:Rate(identity, delta, context)
     if not ns.store then return end
-    local entry, err = ns.store:Add(identity, delta, nil, context, ns.Now())
+    local entry, err = ns.store:Add(identity, delta, nil, self:EntryContext(identity, context), ns.Now())
     if not entry then self:Message(err or "Unable to save rating."); return end
     self.confirmation = { identity = M.IdentityFields(identity), entryID = entry.id, context = M.Copy(entry.context) }
     ns.Changed()
     if ns.store.saved.settings.askForNotes == true and not self.editing then self:OpenEditor(identity, entry.context, entry.id) end
+end
+function C:EntryContext(identity, context)
+    local result = M.Copy(context or {})
+    -- A persona is attached only when an entry is created, never to Recent or
+    -- to an existing entry being edited.
+    local rp = ns.RP and ns.RP.Snapshot(identity)
+    if rp then result.rp = rp else result.rp = nil end
+    return result
 end
 function C:UndoRating(action)
     if not action or not ns.store then return end
@@ -104,7 +112,8 @@ function C:SaveEditor()
     local ok, err
     if editing.entryID then ok, err = ns.store:Edit(editing.identity, editing.entryID, editing.text, ns.Now())
     elseif not editing.text:find("%S") then self:CancelEditor(); return
-    else ok, err = ns.store:Add(editing.identity, nil, editing.text, editing.context, ns.Now()) end
+    else ok, err = ns.store:Add(editing.identity, nil, editing.text,
+        self:EntryContext(editing.identity, editing.context), ns.Now()) end
     if not ok then editing.error = err or "Unable to save note."; self:Refresh(); return end
     self.editing = nil; ns.Changed()
 end
@@ -129,13 +138,13 @@ function C:Forget()
     local identity = self.selection.identity
     if self.forgetKey ~= identity.key then
         self.forgetKey = identity.key
-        self:Message("Click Confirm forget to delete all ratings, notes and ally status for " .. identity.name .. "."); return
+        self:Message("Click Confirm delete to remove all ratings, notes and ally status for " .. identity.name .. "."); return
     end
     local ok, err = ns.store:Forget(identity)
     if not ok then self.forgetKey = nil; self:Message(err); return end
     if self.editing and M.SameIdentity(self.editing.identity, identity) then self.editing = nil end
     if self.confirmation and M.SameIdentity(self.confirmation.identity, identity) then self.confirmation = nil end
-    self.selection, self.forgetKey, self.message = nil, nil, "Character forgotten."
+    self.selection, self.forgetKey, self.message = nil, nil, "Character deleted."
     ns.Changed()
 end
 
@@ -170,9 +179,13 @@ function C:Snapshot()
         }
     end
     local selectedRecord = self.selection and ns.store:Get(self.selection.identity)
-    if selectedRecord then s.selection.identity = M.IdentityFields(selectedRecord) end
+    if selectedRecord and s.selection then s.selection.identity = M.IdentityFields(selectedRecord) end
+    if s.selection and ns.RP then s.rp = ns.RP.Current(s.selection.identity) end
     s.record = selectedRecord and { ally = selectedRecord.ally, score = M.Score(selectedRecord) }
-    local pages = ns.Layout:Pages(selectedRecord and selectedRecord.entries or {}, self.showDetails, s.settings.appearance)
+    local rpVisible = s.rp and s.rp.displayName ~= nil
+    local selectedName = s.selection and s.selection.identity and s.selection.identity.name
+    local pages = ns.Layout:Pages(selectedRecord and selectedRecord.entries or {}, self.showDetails,
+        s.settings.appearance, selectedName, rpVisible)
     s.entryPageCount = #pages; s.entryPage = math.min(self.entryPage, #pages)
     if self.entryAnchor then
         for page, items in ipairs(pages) do

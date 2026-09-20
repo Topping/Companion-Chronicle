@@ -56,8 +56,24 @@ def check(tag=None, archive=None, for_release=False):
     adapters = {"retail": "ClientRetail.lua", "forever": "ClientForever.lua"}
     if adapters[flavor] not in manifest["runtime"] or adapters[{"retail": "forever", "forever": "retail"}[flavor]] in manifest["runtime"]:
         raise ValueError("Wrong client adapter in runtime")
-    if [n for n in manifest["runtime"] if n.endswith(".toc")] != [manifest["addon"] + ".toc"]:
+    modules = manifest.get("optionalAddons", [])
+    expected_tocs = {manifest["addon"] + ".toc"} | {name + "/" + name + ".toc" for name in modules}
+    if {n for n in manifest["runtime"] if n.endswith(".toc")} != expected_tocs:
         raise ValueError("Wrong client TOC in runtime")
+    for name in modules:
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", name) or not name.startswith(manifest["addon"] + "_"):
+            raise ValueError("Invalid optional addon name")
+        module_toc = (ROOT / name / (name + ".toc")).read_text()
+        if not re.search(r"^## Interface:\s*" + str(interface) + r"\s*$", module_toc, re.M):
+            raise ValueError("Optional addon Interface mismatch")
+        if not re.search(r"^## Version:\s*" + re.escape(expected_tag.split("-v", 1)[1]) + r"\s*$", module_toc, re.M):
+            raise ValueError("Optional addon version mismatch")
+        if not re.search(r"^## Group:\s*" + re.escape(manifest["addon"]) + r"\s*$", module_toc, re.M):
+            raise ValueError("Optional addon group mismatch")
+        dependencies = re.search(r"^## RequiredDeps:\s*(.+)$", module_toc, re.M)
+        required = {part.strip() for part in dependencies[1].split(",")} if dependencies else set()
+        if not {manifest["addon"], "totalRP3"}.issubset(required):
+            raise ValueError("Optional addon dependency mismatch")
     tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
     if set(filter(None, tracked)) != set(manifest["files"]) | {".release-manifest.json"}:
         raise ValueError("Unexpected public repository files")
@@ -70,12 +86,14 @@ def check(tag=None, archive=None, for_release=False):
     if archive:
         with zipfile.ZipFile(archive) as z:
             prefix = manifest["addon"] + "/"
-            expected = {prefix + name for name in manifest["runtime"]} | {prefix + "CHANGELOG.md"}
+            def archive_name(name):
+                return name if any(name.startswith(module + "/") for module in modules) else prefix + name
+            expected = {archive_name(name) for name in manifest["runtime"]} | {prefix + "CHANGELOG.md"}
             entries = [n for n in z.namelist() if not n.endswith("/")]
             if len(entries) != len(set(entries)) or set(entries) != expected:
                 raise ValueError("ZIP contains missing, duplicate or unexpected files")
-            for name in expected:
-                original = name[len(prefix):]
+            for original in [*manifest["runtime"], "CHANGELOG.md"]:
+                name = archive_name(original)
                 if hashlib.sha256(z.read(name)).hexdigest() != manifest["files"][original]:
                     raise ValueError(f"Packaged bytes differ from verified source: {name}")
     print("PASS public source" + (" and ZIP" if archive else ""))

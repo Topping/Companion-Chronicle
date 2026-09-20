@@ -1,4 +1,6 @@
 package-as: CompanionChronicle
+move-folders:
+  CompanionChronicle/CompanionChronicle_TotalRP3: CompanionChronicle_TotalRP3
 manual-changelog:
   filename: CHANGELOG.md
   markup-type: markdown

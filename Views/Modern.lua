@@ -59,14 +59,24 @@ function Modern:RefreshDetails(state)
     if not selection then return end
     local identity = selection.identity
     local record = state.record
-    self.detailTitle:SetText(state.showDetails and ns.DisplayName(identity) or ns.Escape(identity.name))
+    self.detailTitle:SetText((state.showDetails or (state.rp and state.rp.displayName))
+        and ns.DisplayName(identity) or ns.Escape(identity.name))
     self.detailScore:SetText(Reputation(record))
+    local rpVisible = state.rp and state.rp.displayName ~= nil
+    self.detailRP:SetShown(rpVisible == true)
+    self.detailRP:SetText(rpVisible and ns.Escape("As " .. state.rp.displayName) or "")
+    self.historyRule:ClearAllPoints()
+    self.historyRule:SetPoint("TOPLEFT", self.details, "TOPLEFT", 0, rpVisible and -108 or -84)
+    self.historyHeading:ClearAllPoints()
+    self.historyHeading:SetPoint("TOPLEFT", self.details, "TOPLEFT", 0, rpVisible and -113 or -89)
+    self.detailsToggle:ClearAllPoints()
+    self.detailsToggle:SetPoint("TOPLEFT", self.details, "TOPLEFT", 400, rpVisible and -111 or -87)
     self.detailsToggle:SetText(state.showDetails and "Hide details" or "Details")
-    self.forget:SetShown(state.showDetails)
+    self.forget:SetShown(record ~= nil)
     self.ally:SetText(record and record.ally and "Unmark ally" or "Mark as ally")
-    self.forget:SetText(state.forgetKey == identity.key and "Confirm forget" or "Forget character")
+    self.forget:SetText(state.forgetKey == identity.key and "Confirm delete" or "Delete character")
     W.RenderHistoryPager(self, state)
-    local offset = 118
+    local offset = rpVisible and 142 or 118
     for i, row in ipairs(self.entryRows) do
         offset = W.RenderHistoryRow(row, state.entries[i], self.details, offset, 490, 400, state.showDetails)
     end
@@ -131,19 +141,23 @@ function Modern:Create()
     self.details = details
     self.detailTitle = Label(details, "", 0, 0, 480, 25, "QuestTitleFont")
     self.detailScore = Label(details, "", 0, -27, 480, 20)
+    self.detailRP = Label(details, "", 0, -80, 490, 18, "GameFontHighlightSmall")
+    self.detailRP:SetMaxLines(1)
     self.ratePositive = Button(details, "Friendly", 0, -54, 78, function() if C.selection then C:Rate(C.selection.identity, 1, C.selection.context) end end)
     self.rateNegative = Button(details, "Unfriendly", 83, -54, 90, function() if C.selection then C:Rate(C.selection.identity, -1, C.selection.context) end end)
     Button(details, "Add note", 178, -54, 85, function() if C.selection then C:OpenEditor(C.selection.identity, C.selection.context) end end)
     self.ally = Button(details, "Mark as ally", 268, -54, 110, function() C:ToggleAlly() end)
-    self.forget = Button(details, "Forget character", 0, -398, 145, function() C:Forget() end)
-    Rect(details, "ARTWORK", 0, -84, 490, 1, 0.39, 0.25, 0.12, 0.3)
-    Label(details, "WHAT IS REMEMBERED", 0, -89, 380, 20, "GameFontNormalSmall")
+    self.forget = Button(details, "Delete character", 0, -398, 145, function() C:Forget() end)
+    self.historyRule = Rect(details, "ARTWORK", 0, -84, 490, 1, 0.39, 0.25, 0.12, 0.3)
+    self.historyHeading = Label(details, "WHAT IS REMEMBERED", 0, -89, 380, 20, "GameFontNormalSmall")
     self.detailsToggle = Button(details, "Details", 400, -87, 90, function() C:ToggleDetails() end)
     self.entryRows = {}
     for i = 1, 10 do
         local row = CreateFrame("Frame", nil, details)
         row:SetSize(490, 30)
         row.title = Label(row, "", 0, -3, 392, 20, "GameFontNormalSmall")
+        row.persona = Label(row, "", 0, -24, 392, 16, "GameFontHighlightSmall")
+        row.persona:SetMaxLines(1)
         local titleFont, _, titleFlags = row.title:GetFont()
         if titleFont then row.title:SetFont(titleFont, 12, titleFlags) end
         row.context = Label(row, "", 0, -28, 392, 50, "QuestFont")

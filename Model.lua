@@ -72,6 +72,16 @@ local function ValidContext(context)
     for _, field in ipairs({ "firstSeen", "lastSeen" }) do
         if context[field] ~= nil and not Finite(context[field]) then return false end
     end
+    if context.rp ~= nil then
+        local rp = context.rp
+        if type(rp) ~= "table" or type(rp.provider) ~= "string" or rp.provider == "" then return false end
+        for _, field in ipairs({ "profileID", "displayName" }) do
+            if rp[field] ~= nil and (type(rp[field]) ~= "string" or rp[field] == "") then return false end
+        end
+        for field in pairs(rp) do
+            if field ~= "provider" and field ~= "profileID" and field ~= "displayName" then return false end
+        end
+    end
     return true
 end
 

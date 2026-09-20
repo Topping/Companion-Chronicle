@@ -1,5 +1,5 @@
 local addonName, ns = ...
--- Exposed for diagnostics and simulator tests; no external addon dependency.
+-- Shared with the optional companion addon and available for diagnostics.
 _G.CompanionChronicle = ns
 
 function ns.Changed()
@@ -43,6 +43,7 @@ local function Initialize()
     local store, err = ns.Model.Open(AlliesDB, ns.partition)
     if not store then ns.initError = err; print("Companion Chronicle: " .. err); return end
     ns.store, AlliesDB = store, store.saved
+    if ns.RP then ns.RP.Install() end
     ns.Controller:Create()
     ns.MinimapButton:Create()
     ns.Recognition:Install()
@@ -62,7 +63,7 @@ for _, event in ipairs({
 events:SetScript("OnEvent", function(_, event, arg)
     if event == "ADDON_LOADED" then
         if arg == addonName then Initialize() end
-        if ns.store then ns.InstallMenus(); ns.Social:Install() end
+        if ns.store then ns.InstallMenus(); ns.Social:Install(); if ns.RP then ns.RP.Install() end end
         return
     end
     if not ns.store then return end
