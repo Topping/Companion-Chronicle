@@ -1,19 +1,19 @@
 {
   "schema": 2,
   "repository": "Topping/Companion-Chronicle",
-  "tag": "retail-v0.4.0",
-  "flavor": "retail",
+  "tag": "forever-v0.4.0",
+  "flavor": "forever",
   "curseforge": {
     "projectId": 1703274,
-    "gameVersion": "12.1.0",
-    "gameVersionTypeId": 517
+    "gameVersion": "1.60.1",
+    "gameVersionTypeId": 88568
   },
   "releaseBlockers": [],
   "addon": "CompanionChronicle",
   "optionalAddons": [
     "CompanionChronicle_TotalRP3"
   ],
-  "interface": 120100,
+  "interface": 16001,
   "packager": "e50a250f8705041e40f2fa1ddcb280a686d65aa0",
   "runtime": [
     "Art/ally.tga",
@@ -23,7 +23,7 @@
     "Art/leather.tga",
     "Art/parchment.tga",
     "Art/positive.tga",
-    "ClientRetail.lua",
+    "ClientForever.lua",
     "CompanionChronicle.toc",
     "CompanionChronicle_TotalRP3/CompanionChronicle_TotalRP3.toc",
     "CompanionChronicle_TotalRP3/TotalRP3.lua",
@@ -43,7 +43,7 @@
     "Views/Widgets.lua"
   ],
   "files": {
-    ".github/scripts/check_release.py": "1417e4f96ad83e5972334c369b427612d0b9a0ea0d2518f429bda4b3c74a73f5",
+    ".github/scripts/check_release.py": "3e7178b29b48bd50c2f2b13aadc2d0bd4d73b222885b0015fab2a53f419a1f67",
     ".github/workflows/release.yml": "6f6e98bf97e4cd56be84005addad2c8c8eefb1b10984ac1282fe2251cbced521",
     ".pkgmeta": "4173ac9284249eb09d3a8672c5d74078e23b60faa306887073dc234df6329d9b",
     "Art/ally.tga": "e196818bd35df63e9fd583bd62eca06346a9084b481656833d2bf71cd4be4337",
@@ -53,10 +53,10 @@
     "Art/leather.tga": "70c7f1717a96f8ee4a747fb726e0c35606ac9dead7e5f67fa04e3dc6ebb524a7",
     "Art/parchment.tga": "6c0f1c7598baab1d5b135f76ea482bfb93da4ae17c72b267adfffe16cfd31b35",
     "Art/positive.tga": "1bb6297709ef6f69a0c2f222b083103c59133bd1190c67ab8ba9781344edeb86",
-    "CHANGELOG.md": "1eb4be51a13fa7495b07519aca726db2c374c08959cb4cd26abece359b1753b6",
-    "ClientRetail.lua": "7c5abcbb896267916bbdefae048b3722216f0e8810ff2b44ff78a92c552b75cf",
-    "CompanionChronicle.toc": "31ac65deb4947e4747c3e9a2f616e7c03dc0dcdef9ce372963be4cecad67cc74",
-    "CompanionChronicle_TotalRP3/CompanionChronicle_TotalRP3.toc": "3b94a095e381bb159c86af26472b070e75cc66cca83dfef19c4da579ff7c4558",
+    "CHANGELOG.md": "4080d5768f1640f47a60ebd388742bd63aab823cacf14d51db455a2b8a9d5c31",
+    "ClientForever.lua": "f6071505ac12655cb4f00b95f57bd9283203b60a778dbdbeb9cd28d61295547e",
+    "CompanionChronicle.toc": "08aaa654d08a4e862fe2007f0b1856ce33293e43d009a942919741a5eeff1053",
+    "CompanionChronicle_TotalRP3/CompanionChronicle_TotalRP3.toc": "aa67bcbfb8e39aa24f551ce9f83ae906eb5e400aa812122f01b72abe4419bbd3",
     "CompanionChronicle_TotalRP3/TotalRP3.lua": "85b2f35fe458430be02e2d0ffda9e350013d8aedaf0df90a699f496bd89bdc8e",
     "Controller.lua": "241f38240fd75005003b3f530e0b2d9f30d2a8eb2243dcc8d80b99f1a71e2562",
     "Core.lua": "fc2a9c0527b53028e4627a5f21ebed976dfe6c3211d33e261611abf45fef690b",
@@ -65,7 +65,7 @@
     "LICENSE": "650b849c2176170fc11da61a37809497ccd9b082602a96070f4a4a880184b825",
     "Minimap.lua": "a09b0a458352f1537f45acb948b19355c4b1f8dadd41bf7b441a3ecc4e6298a0",
     "Model.lua": "5a5a10b0c28021da4160e2a77564037bf98cdc02b51fa013244d22a7cdea0f33",
-    "README.md": "47a7b43997b5c421258e3a96419063be543176fe5381f9f4e27e12af2a700197",
+    "README.md": "38df939ce26ee198eb2450587e32abf46dad25fc93c7a8e942afdbb4c72d1649",
     "Recognition.lua": "b7066c0144548e0d608807600868cefc2b5bec2f4e501e90d55ed85f8debb777",
     "Social.lua": "57e60d8804d961c080e925631dafb55346dae2e2af3d3d0a83df81bbf29d1d2f",
     "UI.lua": "4d7be145e6b42022a6c3df747a94b63afdb43eba5daec0e7a85d32cb9bd90c07",

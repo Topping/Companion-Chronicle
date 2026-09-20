@@ -22,7 +22,7 @@ unzip it into your World of Warcraft `Interface/AddOns` folder, and enable
 **Companion Chronicle** in game. The ZIP also installs **Companion Chronicle:
 Total RP 3** as a separate checkbox under Companion Chronicle in WoW's AddOns
 list. Enable it to show live TRP3 names and save the active persona with new
-journal entries; it requires Total RP 3. Changing the checkbox takes effect
+journal entries when Total RP 3 is installed. Changing the checkbox takes effect
 after reload. Use the release ZIP rather than GitHub's automatically generated
 source archive.
 

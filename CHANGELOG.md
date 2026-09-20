@@ -1,5 +1,12 @@
 # Changelog
 
+## Forever 0.4.0
+
+- Add the separately selectable Total RP 3 companion module for RP names and
+  persona snapshots when Total RP 3 is installed.
+- Keep the journal usable and avoid a missing-addon load error when Total RP 3
+  is absent.
+
 ## Retail 0.4.0
 
 - Add an independently checkable Total RP 3 companion addon. It shows the

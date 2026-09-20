@@ -72,7 +72,9 @@ def check(tag=None, archive=None, for_release=False):
             raise ValueError("Optional addon group mismatch")
         dependencies = re.search(r"^## RequiredDeps:\s*(.+)$", module_toc, re.M)
         required = {part.strip() for part in dependencies[1].split(",")} if dependencies else set()
-        if not {manifest["addon"], "totalRP3"}.issubset(required):
+        optional_deps = re.search(r"^## OptionalDeps:\s*(.+)$", module_toc, re.M)
+        optional = {part.strip() for part in optional_deps[1].split(",")} if optional_deps else set()
+        if manifest["addon"] not in required or "totalRP3" in required or "totalRP3" not in optional:
             raise ValueError("Optional addon dependency mismatch")
     tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
     if set(filter(None, tracked)) != set(manifest["files"]) | {".release-manifest.json"}:
