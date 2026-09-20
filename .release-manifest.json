@@ -1,16 +1,16 @@
 {
   "schema": 2,
   "repository": "Topping/Companion-Chronicle",
-  "tag": "forever-v0.3.1",
-  "flavor": "forever",
+  "tag": "retail-v0.3.1",
+  "flavor": "retail",
   "curseforge": {
     "projectId": 1703274,
-    "gameVersion": "1.60.1",
-    "gameVersionTypeId": 88568
+    "gameVersion": "12.1.0",
+    "gameVersionTypeId": 517
   },
   "releaseBlockers": [],
   "addon": "CompanionChronicle",
-  "interface": 16001,
+  "interface": 120100,
   "packager": "e50a250f8705041e40f2fa1ddcb280a686d65aa0",
   "runtime": [
     "Art/ally.tga",
@@ -20,7 +20,7 @@
     "Art/leather.tga",
     "Art/parchment.tga",
     "Art/positive.tga",
-    "ClientForever.lua",
+    "ClientRetail.lua",
     "CompanionChronicle.toc",
     "Controller.lua",
     "Core.lua",
@@ -48,8 +48,8 @@
     "Art/parchment.tga": "6c0f1c7598baab1d5b135f76ea482bfb93da4ae17c72b267adfffe16cfd31b35",
     "Art/positive.tga": "1bb6297709ef6f69a0c2f222b083103c59133bd1190c67ab8ba9781344edeb86",
     "CHANGELOG.md": "7f521f50ef45f574b8e30997e3ef3ce9e9c08282925dd3a5a479eb30146b5ee1",
-    "ClientForever.lua": "f6071505ac12655cb4f00b95f57bd9283203b60a778dbdbeb9cd28d61295547e",
-    "CompanionChronicle.toc": "d72b2c98d0cadb56dc38757aab61c3a337a253fc852b46e4b9a2744df9eec6ed",
+    "ClientRetail.lua": "7c5abcbb896267916bbdefae048b3722216f0e8810ff2b44ff78a92c552b75cf",
+    "CompanionChronicle.toc": "b30279e187eb809ececb19257d1d2ddaed7ffec72f5afefc8ab29b97d261c111",
     "Controller.lua": "14667ce1a14e37d735028ec88cd565c93643c3f0c6b4ef977827eca01d66c41e",
     "Core.lua": "91a4feaac21a1380110ac6c88e865c83cc7434d8a960c83652048ae03ac9870b",
     "Identity.lua": "eb8d2951807bda75d11dba0563155215dbe070c6e1a24861d9e08c51452feade",
