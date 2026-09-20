@@ -75,7 +75,7 @@ end
 
 function UI:Create()
     if self.editor then return end
-    self.editor = Panel("CompanionChronicleNoteEditor", 580, 350)
+    self.editor = Panel(580, 350)
     self.editor:SetFrameStrata("FULLSCREEN_DIALOG")
     self.editorTitle = Label(self.editor, "", 18, -12, 540, 25, "GameFontNormalLarge")
     self.editorTitle:SetTextColor(0.97, 0.93, 0.83)
@@ -100,7 +100,7 @@ function UI:Create()
     self.cancelNote = Button(self.editor, "Cancel", 118, -310, 90, function() C:CancelEditor() end)
     self.editor:SetScript("OnHide", function() note:ClearFocus(); if not self.rendering then C:CancelEditor() end end)
 
-    self.settings = Panel("CompanionChronicleSettings", 620, 448)
+    self.settings = Panel(620, 448)
     self.settings:SetFrameStrata("FULLSCREEN_DIALOG")
     Label(self.settings, "Companion Chronicle settings", 18, -12, 420, 26, "GameFontNormalLarge"):SetTextColor(0.97, 0.93, 0.83)
     local appearance = SettingsRow(self.settings, -56, "Appearance", "Choose the look of your journal.", 112)

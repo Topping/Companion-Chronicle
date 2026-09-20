@@ -84,7 +84,7 @@ end
 
 function Modern:Create()
     if self.window then return end
-    local window = Panel("CompanionChronicleModernWindow", 820, 500)
+    local window = Panel(820, 500)
     self.window = window
     Label(window, "Companion Chronicle", 20, -10, 290, 28, "QuestTitleFont"):SetTextColor(0.97, 0.93, 0.83)
     Label(window, "A personal record of familiar faces", 315, -14, 300, 20, "GameFontHighlightSmall"):SetTextColor(0.90, 0.86, 0.76)

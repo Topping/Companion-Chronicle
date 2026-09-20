@@ -66,7 +66,7 @@ local function SelectBookmark(button, selected)
 end
 
 function Chronicle:Create()
-    local window = CreateFrame("Frame", "CompanionChronicleWindow", UIParent)
+    local window = CreateFrame("Frame", nil, UIParent)
     self.window = window
     window:SetSize(960, 640); window:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     window:SetFrameStrata("DIALOG"); window:EnableMouse(true); window:SetMovable(true)

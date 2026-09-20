@@ -1,5 +1,22 @@
 # Changelog
 
+## Forever 0.5.0
+
+- Guard recognition, tooltip and minimap updates when frames or values are
+  restricted, and resume deferred marker and button updates when permitted.
+- Place the target reputation marker beside the health bar when the client
+  exposes it, while retaining the existing frame anchor otherwise.
+- Match chat indicators to saved name-and-realm records that lack a GUID when
+  the chat sender supplies both the realm and an original player GUID.
+
+## Retail 0.5.0
+
+- Guard recognition, tooltip and minimap updates during combat and restricted
+  encounters, and clear stale marker artwork when visibility must be deferred.
+- Place the target reputation marker beside the visible health bar.
+- Restore chat friend and ally indicators for saved name-and-realm records
+  without a GUID when the chat sender supplies a verified player GUID.
+
 ## Forever 0.4.0
 
 - Add the separately selectable Total RP 3 companion module for RP names and

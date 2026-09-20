@@ -2,7 +2,7 @@
 ## Title: Companion Chronicle: Total RP 3
 ## Notes: Optional Total RP 3 integration for Companion Chronicle.
 ## Author: Addon Developer
-## Version: 0.4.0
+## Version: 0.5.0
 ## IconTexture: Interface\AddOns\CompanionChronicle\Art\journal-icon
 ## Group: CompanionChronicle
 ## Category-enUS: Roleplay

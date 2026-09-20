@@ -2,14 +2,26 @@ local addonName, ns = ...
 -- Shared with the optional companion addon and available for diagnostics.
 _G.CompanionChronicle = ns
 
+function ns.CanCallProtected(object)
+    if not object or ns.Read(object.IsForbidden, object) ~= false then return false end
+    local check = C_RestrictedActions and C_RestrictedActions.CheckAllowProtectedFunctions
+    if type(check) == "function" then return ns.Read(check, object, true) == true end
+    -- Older clients without this permission probe still use the conservative
+    -- combat guard at each protected layout call.
+    return ns.Read(InCombatLockdown) == false
+end
+
 function ns.Changed()
     ns.Controller:Refresh()
     ns.Recognition:Refresh()
     -- Remove stale tooltip text after a rating/note is edited or forgotten.
     -- WoW rebuilds the tooltip normally on the next hover.
-    if GameTooltip and not GameTooltip:IsForbidden() then
-        local _, unit = GameTooltip:GetUnit()
-        if ns.Text(unit) then GameTooltip:Hide() end
+    if GameTooltip and ns.CanCallProtected(GameTooltip) then
+        local ok, _, unit = pcall(GameTooltip.GetUnit, GameTooltip)
+        if ok and ns.Text(unit) and (ns.Read(InCombatLockdown) == false
+            or ns.Read(GameTooltip.CanChangeProtectedState, GameTooltip) == true) then
+            GameTooltip:Hide()
+        end
     end
 end
 
@@ -57,7 +69,7 @@ for _, event in ipairs({
     "ADDON_LOADED", "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "PLAYER_TARGET_CHANGED",
     "GROUP_ROSTER_UPDATE", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA",
     "NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED", "UNIT_NAME_UPDATE", "PLAYER_REGEN_ENABLED",
-    "UI_SCALE_CHANGED",
+    "ADDON_RESTRICTION_STATE_CHANGED", "UI_SCALE_CHANGED",
 }) do events:RegisterEvent(event) end
 
 events:SetScript("OnEvent", function(_, event, arg)
@@ -77,7 +89,9 @@ events:SetScript("OnEvent", function(_, event, arg)
         end
         ns.Recognition:RenderTarget()
         ns.ObserveGroup()
-    elseif event == "PLAYER_REGEN_ENABLED" then ns.Recognition:Refresh()
+    elseif event == "PLAYER_REGEN_ENABLED" or event == "ADDON_RESTRICTION_STATE_CHANGED" then
+        ns.MinimapButton:Resume()
+        ns.Recognition:Refresh()
     else
         ns.ObserveGroup()
         if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then ns.Recognition:Discover() end

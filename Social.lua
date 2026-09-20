@@ -18,7 +18,10 @@ function Social.ChatMarker(event, sender, guid)
     sender, guid = ns.Text(sender), ns.Text(guid)
     if not sender or not guid then return end
     -- Require the event GUID; never resolve a chat author by bare name.
-    local identity = M.Identity(sender, nil, guid)
+    -- A chat sender may include a realm while an older saved record has no
+    -- GUID. Preserve that exact realm for the keyed lookup; GUID-only names
+    -- still resolve through the GUID without guessing a realm.
+    local identity = ns.Client.MenuName(sender, nil, guid)
     local symbol = M.Badge(identity and ns.store:Get(identity))
     if symbol == "*" then return "|TInterface\\AddOns\\CompanionChronicle\\Art\\ally.tga:16:16|t" end
     if symbol == "+" then return "|TInterface\\AddOns\\CompanionChronicle\\Art\\positive.tga:16:16|t" end

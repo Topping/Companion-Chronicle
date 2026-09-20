@@ -40,8 +40,8 @@ function W.Button(parent, text, x, y, width, callback)
     return button
 end
 
-function W.Panel(name, width, height)
-    local panel = CreateFrame("Frame", name, UIParent)
+function W.Panel(width, height)
+    local panel = CreateFrame("Frame", nil, UIParent)
     panel:SetSize(width, height)
     panel:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     panel:SetFrameStrata("DIALOG")
