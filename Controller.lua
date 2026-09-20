@@ -64,6 +64,14 @@ function C:SetAppearance(appearance)
     self:Refresh()
     return true
 end
+function C:SetJournalSize(size)
+    if not M.ValidJournalSize(size) then return false end
+    if ns.store.saved.settings.journalSize ~= size then
+        ns.store.saved.settings.journalSize = size
+        self:Refresh()
+    end
+    return true
+end
 function C:Rate(identity, delta, context)
     if not ns.store then return end
     local entry, err = ns.store:Add(identity, delta, nil, context, ns.Now())

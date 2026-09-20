@@ -1,6 +1,12 @@
 local _, ns = ...
 local Model = {}
 ns.Model = Model
+Model.journalSizes = { 70, 80, 90, 100, 110 }
+
+function Model.ValidJournalSize(value)
+    for _, size in ipairs(Model.journalSizes) do if value == size then return true end end
+    return false
+end
 
 function Model.Copy(value)
     if type(value) ~= "table" then return value end
@@ -147,6 +153,7 @@ function Model.Open(saved, partition)
     saved.partitions[partition] = db
     saved.settings = saved.settings or {}
     if saved.settings.appearance ~= "modern" and saved.settings.appearance ~= "immersive" then saved.settings.appearance = "immersive" end
+    if not Model.ValidJournalSize(saved.settings.journalSize) then saved.settings.journalSize = 100 end
     if saved.settings.askForNotes == nil then saved.settings.askForNotes = false end
     if saved.settings.chatMarkers == nil then saved.settings.chatMarkers = true end
     if saved.settings.groupReminders == nil then saved.settings.groupReminders = true end

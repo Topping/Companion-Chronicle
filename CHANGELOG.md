@@ -1,5 +1,15 @@
 # Changelog
 
+## Forever 0.3.1
+
+- Add a saved journal size slider with choices from 70% to 110% in both appearances.
+- Fit the journal and Chronicle bookmarks to the available screen when needed.
+
+## Retail 0.3.1
+
+- Add a saved journal size slider with choices from 70% to 110% in both appearances.
+- Fit the journal and Chronicle bookmarks to the available screen when needed.
+
 ## Forever 0.3.0
 
 - Keep Forever first and last names together in stable Forever-only saved data.

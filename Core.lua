@@ -56,6 +56,7 @@ for _, event in ipairs({
     "ADDON_LOADED", "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "PLAYER_TARGET_CHANGED",
     "GROUP_ROSTER_UPDATE", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA",
     "NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED", "UNIT_NAME_UPDATE", "PLAYER_REGEN_ENABLED",
+    "UI_SCALE_CHANGED",
 }) do events:RegisterEvent(event) end
 
 events:SetScript("OnEvent", function(_, event, arg)
@@ -65,6 +66,7 @@ events:SetScript("OnEvent", function(_, event, arg)
         return
     end
     if not ns.store then return end
+    if event == "UI_SCALE_CHANGED" then ns.UI:RefreshJournalScale(); return end
     if event == "NAME_PLATE_UNIT_ADDED" then ns.Recognition:RenderPlate(arg)
     elseif event == "NAME_PLATE_UNIT_REMOVED" then ns.Recognition:Remove(arg)
     elseif event == "PLAYER_TARGET_CHANGED" then ns.Recognition:RenderTarget()
