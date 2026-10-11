@@ -1,16 +1,21 @@
-## Interface: 120100
+## Interface: 16001
 ## Title: Companion Chronicle
 ## Notes: Personal reputation, optional notes and recognition. Open from the minimap or with /cchron.
 ## Author: Addon Developer
-## Version: 0.5.0
+## Version: 0.6.0
 ## IconTexture: Interface\AddOns\CompanionChronicle\Art\journal-icon
 ## X-Curse-Project-ID: 1703274
 ## SavedVariables: AlliesDB
 ## Group: CompanionChronicle
 ## Category-enUS: Roleplay
 
+Libs/LibStub/LibStub.lua
+Libs/CallbackHandler-1.0/CallbackHandler-1.0.lua
+Libs/LibDataBroker-1.1/LibDataBroker-1.1.lua
+Libs/LibDBIcon-1.0/LibDBIcon-1.0.lua
+
 Model.lua
-ClientRetail.lua
+ClientForever.lua
 Identity.lua
 Integrations/RP.lua
 Controller.lua

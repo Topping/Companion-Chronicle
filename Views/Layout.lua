@@ -4,23 +4,77 @@ local _, ns = ...
 local Layout = {}
 ns.Layout = Layout
 
-function Layout:EntryDetails(entry)
-    local c = entry.context
-    local location = c.zone or "Location unknown"
-    if c.subzone and c.subzone ~= c.zone then location = c.subzone .. " · " .. location end
-    if c.instance then location = location .. " · " .. c.instance end
-    if c.instanceType then location = location .. " (" .. c.instanceType .. ")" end
-    local group = c.group or "Unknown"
-    if c.sharedGroup == true then group = group .. " · Together"
-    elseif c.sharedGroup == false and c.group ~= "Solo" then group = group .. " · Not together" end
-    return ns.When(entry.createdAt) .. " · " .. group .. "\n" .. location
+local function CharacterCount(text)
+    local _, count = text:gsub("[^\128-\191]", "")
+    return count
 end
 
-function Layout:Pages(entries, expanded, appearance, canonicalName, rpVisible)
+local function CharacterPrefix(text, limit)
+    local count = 0
+    for i = 1, #text do
+        local byte = text:byte(i)
+        if byte < 128 or byte >= 192 then
+            count = count + 1
+            if count > limit then return text:sub(1, i - 1) end
+        end
+    end
+    return text
+end
+
+function Layout:ChronicleName(name)
+    local full = name:gsub("%s+", " "):match("^%s*(.-)%s*$")
+    if not self.nameMeasure then
+        local frame = CreateFrame("Frame", nil, UIParent)
+        frame:Hide()
+        self.nameMeasure = frame:CreateFontString(nil, "ARTWORK", "QuestFont")
+        self.nameMeasure:SetSize(1000, 40)
+    end
+    local measure = self.nameMeasure
+    local font, _, flags = measure:GetFont()
+    local function fittingSize(text, width)
+        measure:SetText(ns.Escape(text))
+        if not font then return 14 end
+        for size = 30, 14, -2 do
+            measure:SetFont(font, size, flags)
+            local measured = measure.GetUnboundedStringWidth
+                and measure:GetUnboundedStringWidth() or measure:GetStringWidth()
+            if measured <= width then return size end
+        end
+        return nil
+    end
+    local first, surname = full:match("^(%S+)%s+(.+)$")
+    if not surname or CharacterCount(full) <= 19 then
+        local fullSize = fittingSize(full, 265)
+        if fullSize then return { first = full, firstSize = fullSize } end
+    end
+    if not surname then return { first = full, firstSize = 14 } end
+    local sharedSize = math.min(fittingSize(first, 265) or 14, fittingSize(surname, 350) or 14)
+    return { first = first, surname = surname,
+        firstSize = sharedSize, surnameSize = sharedSize }
+end
+
+function Layout:EntryTitle(entry)
+    local c = entry.context
+    local location = c.zone or "Unknown place"
+    if c.subzone and c.subzone ~= c.zone then location = c.subzone .. ", " .. location end
+    local action = entry.delta and string.format("%+d Rep", entry.delta) or "Memory"
+    return (entry.createdAt and date("%d %b", entry.createdAt) or "Undated")
+        .. " · " .. location .. " · " .. action
+end
+
+function Layout:NotePreview(note, appearance)
+    local compact = note:gsub("%s+", " "):match("^%s*(.-)%s*$")
+    local limit = appearance == "immersive" and 96 or 120
+    if CharacterCount(compact) <= limit then return compact end
+    return CharacterPrefix(compact, limit):gsub("%s+$", "") .. "…"
+end
+
+function Layout:Pages(entries, appearance, canonicalName, rpVisible, nameWrapped)
     local cached = self.cached
-    if cached and cached.entries == entries and cached.expanded == expanded
-        and cached.appearance == appearance and cached.canonicalName == canonicalName
-        and cached.rpVisible == rpVisible and #cached.fingerprint == #entries then
+    if cached and cached.entries == entries and cached.appearance == appearance
+        and cached.canonicalName == canonicalName
+        and cached.rpVisible == rpVisible and cached.nameWrapped == nameWrapped
+        and #cached.fingerprint == #entries then
         local unchanged = true
         for i, entry in ipairs(entries) do
             local old, context = cached.fingerprint[i], entry.context
@@ -35,8 +89,8 @@ function Layout:Pages(entries, expanded, appearance, canonicalName, rpVisible)
         end
         if unchanged then return cached.pages end
     end
-    local width, size = 490, 14
-    if appearance == "immersive" then width, size = 350, 15 end
+    local width, size = 392, 14
+    if appearance == "immersive" then width, size = 326, 15 end
     if not self.measure then
         local frame = CreateFrame("Frame", nil, UIParent)
         frame:Hide()
@@ -47,9 +101,9 @@ function Layout:Pages(entries, expanded, appearance, canonicalName, rpVisible)
     self.measure:SetWidth(width)
     local pages, used = { {} }, 0
     local budget = 274
-    -- Reserve a quiet footer above Chronicle's curved, worn page edge.
-    if appearance == "immersive" then budget = 258 end
-    if rpVisible then budget = budget - 24 end
+    -- The right page keeps a quiet footer after the memory section.
+    if appearance == "immersive" then budget = 286 - (nameWrapped and 12 or 0) end
+    if rpVisible then budget = budget - 20 end
     for i = #entries, 1, -1 do
         local entry = entries[i]
         local displayName = entry.context.rp and entry.context.rp.displayName
@@ -59,24 +113,16 @@ function Layout:Pages(entries, expanded, appearance, canonicalName, rpVisible)
         if font then self.measure:SetFont(font, size, flags) end
         self.measure:SetWidth(width)
         local noteHeight = 0
+        local noteText
         if entry.note then
-            self.measure:SetText(ns.Escape(entry.note))
-            noteHeight = math.max(18, math.ceil(self.measure:GetStringHeight()) + 2)
+            noteText = self:NotePreview(entry.note, appearance)
+            self.measure:SetText(ns.Escape(noteText))
+            noteHeight = math.min(38, math.max(18, math.ceil(self.measure:GetStringHeight()) + 2))
         end
-        local detailsText = self:EntryDetails(entry)
-        local contextHeight = 0
-        if expanded then
-            if font then self.measure:SetFont(font, 10, flags) end
-            self.measure:SetWidth(appearance == "immersive" and 240 or 392)
-            self.measure:SetText(ns.Escape(detailsText))
-            contextHeight = math.min(math.ceil(self.measure:GetStringHeight()) + 4, budget - 54)
-        end
-        -- Oversized imported text keeps a bounded preview and the full editor.
-        noteHeight = math.min(noteHeight, budget - contextHeight - personaHeight - 54)
-        local height = (entry.note and noteHeight + 28 or 28) + personaHeight + contextHeight + 16
+        local height = 62 + personaHeight + noteHeight
         if used + height > budget then pages[#pages + 1] = {}; used = 0 end
         pages[#pages][#pages[#pages] + 1] = { entry = entry, height = height, noteHeight = noteHeight,
-            detailsText = detailsText, contextHeight = contextHeight,
+            noteText = noteText, titleText = self:EntryTitle(entry),
             personaText = personaText, personaHeight = personaHeight }
         used = used + height
     end
@@ -91,8 +137,8 @@ function Layout:Pages(entries, expanded, appearance, canonicalName, rpVisible)
             persona = context.rp and context.rp.displayName,
         }
     end
-    self.cached = { entries = entries, expanded = expanded, appearance = appearance,
-        canonicalName = canonicalName, rpVisible = rpVisible,
+    self.cached = { entries = entries, appearance = appearance,
+        canonicalName = canonicalName, rpVisible = rpVisible, nameWrapped = nameWrapped,
         fingerprint = fingerprint, pages = pages }
     return pages
 end

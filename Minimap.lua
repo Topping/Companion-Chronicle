@@ -1,6 +1,7 @@
 local _, ns = ...
 
 local iconPath = "Interface\\AddOns\\CompanionChronicle\\Art\\journal-icon"
+local objectName = "CompanionChronicle"
 local MinimapButton = {}
 ns.MinimapButton = MinimapButton
 
@@ -10,90 +11,87 @@ local function CanUpdateTooltip()
         or ns.Read(GameTooltip.CanChangeProtectedState, GameTooltip) == true
 end
 
+local function Toggle(_, mouseButton)
+    if mouseButton == nil or mouseButton == "LeftButton" then ns.Controller:ToggleWindow() end
+end
+
+local function ShowTooltip(frame)
+    if not CanUpdateTooltip() then return end
+    GameTooltip:SetOwner(frame, "ANCHOR_LEFT")
+    GameTooltip:AddLine("Companion Chronicle")
+    GameTooltip:AddLine("Click to open the journal. Drag to move around the minimap.", 1, 1, 1)
+    GameTooltip:Show()
+end
+
+local function HideTooltip()
+    if CanUpdateTooltip() then GameTooltip:Hide() end
+end
+
+local function CanPlace(button)
+    return ns.Read(InCombatLockdown) == false
+        and ns.CanCallProtected(button) and ns.CanCallProtected(Minimap)
+end
+
 local function Place(button, angle)
-    if ns.Read(InCombatLockdown) ~= false
-        or not ns.CanCallProtected(button) or not ns.CanCallProtected(Minimap) then return false end
-    local width = ns.Read(Minimap.GetWidth, Minimap)
-    if type(width) ~= "number" or width <= 0 then return false end
-    local radians = math.rad(angle)
-    local radius = width / 2 + 10
-    button:ClearAllPoints()
-    button:SetPoint("CENTER", Minimap, "CENTER", math.cos(radians) * radius, math.sin(radians) * radius)
-    return true
+    if not button or not CanPlace(button) then return false end
+    local ok = pcall(MinimapButton.iconLibrary.SetButtonToPosition,
+        MinimapButton.iconLibrary, button, angle)
+    return ok
 end
 
 function MinimapButton:SetAngle(angle)
     angle = angle % 360
-    ns.store.saved.settings.minimapAngle = angle
-    self.pendingAngle = not self.frame or not Place(self.frame, angle)
-end
-
-function MinimapButton:UpdateDrag()
-    if ns.Read(InCombatLockdown) ~= false or not ns.CanCallProtected(Minimap) then return end
-    local cursorOk, x, y = pcall(GetCursorPosition)
-    local scale = ns.Read(Minimap.GetEffectiveScale, Minimap)
-    local centerOk, centerX, centerY = pcall(Minimap.GetCenter, Minimap)
-    if not cursorOk or not centerOk or not ns.Public(x) or not ns.Public(y)
-        or not ns.Public(centerX) or not ns.Public(centerY)
-        or type(x) ~= "number" or type(y) ~= "number"
-        or type(centerX) ~= "number" or type(centerY) ~= "number"
-        or type(scale) ~= "number" or scale == 0 then return end
-    self:SetAngle(math.deg(math.atan2(y / scale - centerY, x / scale - centerX)))
+    local settings = ns.store.saved.settings
+    settings.minimapAngle = angle
+    if self.iconSettings then self.iconSettings.minimapPos = angle end
+    self.pendingAngle = not Place(self.frame, angle)
 end
 
 function MinimapButton:Create()
     if self.frame then return end
-    -- The button inherits Minimap as its parent, and positioning uses the
-    -- protected SetPoint API. A combat reload can initialize it after regen.
     if ns.Read(InCombatLockdown) ~= false or not ns.CanCallProtected(Minimap) then return end
-    local frameLevel = ns.Read(Minimap.GetFrameLevel, Minimap)
-    if type(frameLevel) ~= "number" then return end
-    local button = CreateFrame("Button", nil, Minimap)
-    button:SetSize(32, 32)
-    button:SetFrameLevel(frameLevel + 5)
-    button:RegisterForClicks("LeftButtonUp")
-    button:RegisterForDrag("LeftButton")
 
-    local icon = button:CreateTexture(nil, "ARTWORK")
-    local iconSize = ns.Client.minimapIconSize or 32
-    icon:SetSize(iconSize, iconSize)
-    icon:SetPoint("CENTER", button, "CENTER")
-    icon:SetTexture(iconPath)
-    button.icon = icon
+    local broker = LibStub:GetLibrary("LibDataBroker-1.1")
+    local iconLibrary = LibStub:GetLibrary("LibDBIcon-1.0")
+    local dataObject = broker:GetDataObjectByName(objectName)
+    if not dataObject then
+        dataObject = broker:NewDataObject(objectName, {
+            type = "launcher",
+            text = "Companion Chronicle",
+            label = "Companion Chronicle",
+            icon = iconPath,
+            OnClick = Toggle,
+            OnEnter = ShowTooltip,
+            OnLeave = HideTooltip,
+        })
+    end
 
-    button:SetScript("OnMouseDown", function(self)
-        self.wasDragged = false
-    end)
-    button:SetScript("OnClick", function(self)
-        if not self.wasDragged then ns.Controller:ToggleWindow() end
-    end)
-    button:SetScript("OnDragStart", function(self)
-        if ns.Read(InCombatLockdown) ~= false or not ns.CanCallProtected(self) then return end
-        self.wasDragged = true
-        self:SetScript("OnUpdate", function() MinimapButton:UpdateDrag() end)
-        MinimapButton:UpdateDrag()
-    end)
-    button:SetScript("OnDragStop", function(self)
-        self:SetScript("OnUpdate", nil)
-        MinimapButton:UpdateDrag()
-    end)
-    button:SetScript("OnEnter", function(self)
-        if not CanUpdateTooltip() then return end
-        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-        GameTooltip:AddLine("Companion Chronicle")
-        GameTooltip:AddLine("Click to open the journal. Drag to move around the minimap.", 1, 1, 1)
-        GameTooltip:Show()
-    end)
-    button:SetScript("OnLeave", function()
-        if CanUpdateTooltip() then GameTooltip:Hide() end
+    self.iconSettings = self.iconSettings or { minimapPos = ns.store.saved.settings.minimapAngle }
+    if not iconLibrary:IsRegistered(objectName) then
+        iconLibrary:Register(objectName, dataObject, self.iconSettings)
+    end
+
+    local button = iconLibrary:GetMinimapButton(objectName)
+    button:HookScript("OnDragStop", function(self)
+        local angle = self.db and self.db.minimapPos
+        if type(angle) == "number" then ns.store.saved.settings.minimapAngle = angle end
     end)
 
+    self.dataObject = dataObject
+    self.iconLibrary = iconLibrary
     self.frame = button
     self.pendingAngle = not Place(button, ns.store.saved.settings.minimapAngle)
 end
 
 function MinimapButton:Resume()
     if ns.Read(InCombatLockdown) ~= false or not ns.CanCallProtected(Minimap) then return end
-    if not self.frame then self:Create()
-    elseif self.pendingAngle then self.pendingAngle = not Place(self.frame, ns.store.saved.settings.minimapAngle) end
+    if not self.frame then
+        self:Create()
+    elseif self.pendingAngle then
+        self.pendingAngle = not Place(self.frame, ns.store.saved.settings.minimapAngle)
+    end
+end
+
+_G.CompanionChronicle_OnAddonCompartmentClick = function(_, mouseButton)
+    Toggle(nil, mouseButton)
 end

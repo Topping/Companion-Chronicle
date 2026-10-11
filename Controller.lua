@@ -2,7 +2,7 @@ local _, ns = ...
 local M = ns.Model
 -- Application state and actions. No frame handles or widget reads belong here.
 local C = { view = "Remembered", page = 1, entryPage = 1, query = "", alliesOnly = false,
-    showDetails = false, visible = false, settingsOpen = false, message = "" }
+    visible = false, settingsOpen = false, message = "" }
 ns.Controller = C
 
 function C:Refresh(background)
@@ -25,7 +25,7 @@ function C:ToggleWindow() self.visible = not self.visible; self.forgetKey = nil;
 function C:Close() self.visible = false; self.forgetKey = nil; self:Refresh() end
 function C:Select(identity, context)
     self.selection = { identity = M.IdentityFields(identity), context = M.Copy(context or {}) }
-    self.entryPage, self.showDetails, self.forgetKey, self.message = 1, false, nil, ""
+    self.entryPage, self.forgetKey, self.message = 1, nil, ""
     self.entryAnchor = nil
     self:Refresh()
 end
@@ -41,7 +41,6 @@ function C:SetView(view)
     self:Refresh()
 end
 function C:SetQuery(query) self.query, self.page = query, 1; self:Refresh() end
-function C:ToggleDetails() self.showDetails, self.entryPage, self.entryAnchor = not self.showDetails, 1, nil; self:Refresh() end
 function C:Page(delta) self.page = math.max(1, self:Snapshot().page + delta); self:Refresh() end
 function C:EntryPage(delta) self.entryPage = math.max(1, self:Snapshot().entryPage + delta); self.entryAnchor = nil; self:Refresh() end
 function C:Settings(open) self.settingsOpen = open; self:Refresh() end
@@ -149,7 +148,7 @@ function C:Forget()
 end
 
 function C:Snapshot()
-    local s = { view = self.view, query = self.query, alliesOnly = self.alliesOnly, showDetails = self.showDetails,
+    local s = { view = self.view, query = self.query, alliesOnly = self.alliesOnly,
         visible = self.visible, settingsOpen = self.settingsOpen, message = self.message,
         selection = self.selection and { identity = M.IdentityFields(self.selection.identity), context = self.selection.context },
         editing = self.editing, forgetKey = self.forgetKey, rows = {}, settings = ns.store.saved.settings }
@@ -184,8 +183,11 @@ function C:Snapshot()
     s.record = selectedRecord and { ally = selectedRecord.ally, score = M.Score(selectedRecord) }
     local rpVisible = s.rp and s.rp.displayName ~= nil
     local selectedName = s.selection and s.selection.identity and s.selection.identity.name
-    local pages = ns.Layout:Pages(selectedRecord and selectedRecord.entries or {}, self.showDetails,
-        s.settings.appearance, selectedName, rpVisible)
+    s.chronicleName = s.settings.appearance == "immersive" and selectedName
+        and ns.Layout:ChronicleName(selectedName) or nil
+    local pages = ns.Layout:Pages(selectedRecord and selectedRecord.entries or {},
+        s.settings.appearance, selectedName, rpVisible,
+        s.chronicleName and s.chronicleName.surname ~= nil)
     s.entryPageCount = #pages; s.entryPage = math.min(self.entryPage, #pages)
     if self.entryAnchor then
         for page, items in ipairs(pages) do

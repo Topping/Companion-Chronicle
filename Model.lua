@@ -17,7 +17,8 @@ end
 
 function Model.IdentityFields(identity)
     if not identity then return nil end
-    return { key = identity.key, name = identity.name, realm = identity.realm, guid = identity.guid }
+    return { key = identity.key, name = identity.name, realm = identity.realm,
+        guid = identity.guid, race = identity.race, class = identity.class }
 end
 
 function Model.Identity(name, realm, guid)
@@ -139,14 +140,21 @@ function Model.Open(saved, partition)
         or db.nextEntry < 1 or db.nextEntry % 1 ~= 0 then
         return nil, "Invalid saved-data partition; existing data was preserved."
     end
-    local seenIDs = {}
+    local seenIDs, guidIndex = {}, {}
     for key, record in pairs(db.characters) do
         if type(key) ~= "string" or key == "" or type(record) ~= "table"
             or type(record.name) ~= "string" or record.name == "" or type(record.realm) ~= "string"
             or record.key ~= key or not DenseEntries(record.entries) or type(record.ally) ~= "boolean"
             or (record.guid ~= nil and (type(record.guid) ~= "string" or not record.guid:match("^Player%-%d+%-%x+$")))
+            or (record.race ~= nil and (type(record.race) ~= "string" or record.race == ""))
+            or (record.class ~= nil and (type(record.class) ~= "string" or record.class == ""))
             or not ValidRecordKey(key, record) then
             return nil, "Invalid character record; existing data was preserved."
+        end
+        if record.guid then
+            local bucket = guidIndex[record.guid]
+            if not bucket then bucket = {}; guidIndex[record.guid] = bucket end
+            bucket[#bucket + 1] = record
         end
         for _, entry in ipairs(record.entries) do
             if type(entry) ~= "table" or type(entry.id) ~= "number" or entry.id < 1
@@ -168,20 +176,18 @@ function Model.Open(saved, partition)
     if saved.settings.chatMarkers == nil then saved.settings.chatMarkers = true end
     if saved.settings.groupReminders == nil then saved.settings.groupReminders = true end
     if saved.settings.minimapAngle == nil then saved.settings.minimapAngle = 225 end
-    return setmetatable({ saved = saved, db = db, recent = {}, nextRecent = 1 }, { __index = Model })
+    return setmetatable({ saved = saved, db = db, guidIndex = guidIndex,
+        recent = {}, nextRecent = 1 }, { __index = Model })
 end
 
 function Model:Get(identity)
     if not identity then return end
     local record
     if identity.guid then
-        for _, candidate in pairs(self.db.characters) do
-            if candidate.guid == identity.guid then
-                -- Ambiguous old data must not silently choose a history.
-                if record then return nil, "Multiple records identify this character; existing data was preserved." end
-                record = candidate
-            end
-        end
+        local bucket = self.guidIndex[identity.guid]
+        -- Ambiguous old data must not silently choose a history.
+        if bucket and #bucket > 1 then return nil, "Multiple records identify this character; existing data was preserved." end
+        record = bucket and bucket[1]
     end
     local keyed = self.db.characters[identity.key]
     if record and keyed and record ~= keyed and not keyed.guid then
@@ -194,6 +200,24 @@ function Model:Get(identity)
     return record
 end
 
+local function IndexRecord(self, record)
+    if not record.guid then return end
+    local bucket = self.guidIndex[record.guid]
+    if not bucket then bucket = {}; self.guidIndex[record.guid] = bucket end
+    bucket[#bucket + 1] = record
+end
+
+local function DropRecord(self, record)
+    self.db.characters[record.key] = nil
+    if not record.guid then return end
+    local bucket = self.guidIndex[record.guid]
+    if not bucket then return end
+    for index, candidate in ipairs(bucket) do
+        if candidate == record then table.remove(bucket, index); break end
+    end
+    if #bucket == 0 then self.guidIndex[record.guid] = nil end
+end
+
 local function ReconcileIdentity(record, identity)
     -- Only repair an old surname-as-realm record with matching GUID and full
     -- name evidence. Keep its storage key and history IDs stable.
@@ -201,11 +225,19 @@ local function ReconcileIdentity(record, identity)
         and record.realm ~= "" and identity.realm == ""
         and (record.name .. record.realm):gsub("%s", "") == identity.name:gsub("%s", "")
     if identity.guid and not record.guid then record.guid = identity.guid end
+    if identity.race then record.race = identity.race end
+    if identity.class then record.class = identity.class end
     -- A captured pre-repair identity retains the storage key. It cannot undo
     -- the correction merely because it still carries the old realm.
     if repaired or (record.realm == "" and identity.realm ~= "" and identity.key ~= record.key) then
         record.name, record.realm = identity.name, identity.realm
     end
+end
+
+local function ReconcileRecordIdentity(self, record, identity)
+    local hadGUID = record.guid
+    ReconcileIdentity(record, identity)
+    if not hadGUID and record.guid then IndexRecord(self, record) end
 end
 
 function Model:Ensure(identity)
@@ -216,8 +248,9 @@ function Model:Ensure(identity)
         record = Model.Copy(identity)
         record.ally, record.entries = false, {}
         self.db.characters[identity.key] = record
+        IndexRecord(self, record)
     end
-    ReconcileIdentity(record, identity)
+    ReconcileRecordIdentity(self, record, identity)
     return record
 end
 
@@ -284,7 +317,7 @@ function Model:Delete(identity, entryID)
     for index, entry in ipairs(record.entries) do
         if entry.id == entryID then
             table.remove(record.entries, index)
-            if not Model.Remembered(record) then self.db.characters[record.key] = nil end
+            if not Model.Remembered(record) then DropRecord(self, record) end
             return true
         end
     end
@@ -295,7 +328,7 @@ function Model:SetAlly(identity, value)
     local record, err = self:Ensure(identity)
     if not record then return false, err end
     record.ally = value == true
-    if not Model.Remembered(record) then self.db.characters[record.key] = nil end
+    if not Model.Remembered(record) then DropRecord(self, record) end
     return true
 end
 
@@ -304,7 +337,7 @@ function Model:Forget(identity)
     if err then
         return false, "Character identity changed. Open the original record in Remembered to forget it."
     end
-    if record then self.db.characters[record.key] = nil end
+    if record then DropRecord(self, record) end
     for i = #self.recent, 1, -1 do
         if Model.SameIdentity(self.recent[i].identity, identity) then table.remove(self.recent, i) end
     end
@@ -327,7 +360,7 @@ end
 function Model:Observe(identity, context, now)
     self:Prune(now)
     local record = self:Get(identity)
-    if record then ReconcileIdentity(record, identity) end
+    if record then ReconcileRecordIdentity(self, record, identity) end
     local bucket = math.floor(now / 300)
     for _, row in ipairs(self.recent) do
         if Model.SameIdentity(row.identity, identity)

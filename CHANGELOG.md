@@ -1,5 +1,38 @@
 # Changelog
 
+## Forever 0.6.0
+
+- Streamline journal memories by putting the date, location and reputation
+  change in the entry headline, removing the redundant Details mode, and
+  keeping Read/edit and Delete available directly on each entry.
+- Keep long notes from overwhelming the journal with a compact preview. Click
+  the entry to open and read or edit the complete note.
+- Give the Chronicle more room for memories by removing the latest-entry box,
+  the “WHAT IS REMEMBERED” heading and the “Names worth keeping” subtitle.
+- Improve selected-character headings and show known realm, race and class
+  information beneath the name when available.
+- Register the minimap launcher through LibDataBroker and LibDBIcon so standard
+  minimap-button collectors can gather it, while retaining its saved position,
+  tooltip and journal toggle behavior.
+- Keep the standard LibDBIcon minimap launcher independent of Retail-only addon
+  compartment APIs.
+
+## Retail 0.6.0
+
+- Streamline journal memories by putting the date, location and reputation
+  change in the entry headline, removing the redundant Details mode, and
+  keeping Read/edit and Delete available directly on each entry.
+- Keep long notes from overwhelming the journal with a compact preview. Click
+  the entry to open and read or edit the complete note.
+- Give the Chronicle more room for memories by removing the latest-entry box,
+  the “WHAT IS REMEMBERED” heading and the “Names worth keeping” subtitle.
+- Improve selected-character headings and show known realm, race and class
+  information beneath the name when available.
+- Register the minimap launcher through LibDataBroker and LibDBIcon so standard
+  minimap-button collectors can gather it, while retaining its saved position,
+  tooltip and journal toggle behavior.
+- Add Companion Chronicle to Retail's built-in addon compartment.
+
 ## Forever 0.5.0
 
 - Guard recognition, tooltip and minimap updates when frames or values are

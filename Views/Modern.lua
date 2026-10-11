@@ -59,8 +59,7 @@ function Modern:RefreshDetails(state)
     if not selection then return end
     local identity = selection.identity
     local record = state.record
-    self.detailTitle:SetText((state.showDetails or (state.rp and state.rp.displayName))
-        and ns.DisplayName(identity) or ns.Escape(identity.name))
+    self.detailTitle:SetText(ns.DisplayName(identity))
     self.detailScore:SetText(Reputation(record))
     local rpVisible = state.rp and state.rp.displayName ~= nil
     self.detailRP:SetShown(rpVisible == true)
@@ -69,16 +68,13 @@ function Modern:RefreshDetails(state)
     self.historyRule:SetPoint("TOPLEFT", self.details, "TOPLEFT", 0, rpVisible and -108 or -84)
     self.historyHeading:ClearAllPoints()
     self.historyHeading:SetPoint("TOPLEFT", self.details, "TOPLEFT", 0, rpVisible and -113 or -89)
-    self.detailsToggle:ClearAllPoints()
-    self.detailsToggle:SetPoint("TOPLEFT", self.details, "TOPLEFT", 400, rpVisible and -111 or -87)
-    self.detailsToggle:SetText(state.showDetails and "Hide details" or "Details")
     self.forget:SetShown(record ~= nil)
     self.ally:SetText(record and record.ally and "Unmark ally" or "Mark as ally")
     self.forget:SetText(state.forgetKey == identity.key and "Confirm delete" or "Delete character")
     W.RenderHistoryPager(self, state)
     local offset = rpVisible and 142 or 118
     for i, row in ipairs(self.entryRows) do
-        offset = W.RenderHistoryRow(row, state.entries[i], self.details, offset, 490, 400, state.showDetails)
+        offset = W.RenderHistoryRow(row, state.entries[i], self.details, offset, 490, 400)
     end
 end
 
@@ -149,24 +145,19 @@ function Modern:Create()
     self.ally = Button(details, "Mark as ally", 268, -54, 110, function() C:ToggleAlly() end)
     self.forget = Button(details, "Delete character", 0, -398, 145, function() C:Forget() end)
     self.historyRule = Rect(details, "ARTWORK", 0, -84, 490, 1, 0.39, 0.25, 0.12, 0.3)
-    self.historyHeading = Label(details, "WHAT IS REMEMBERED", 0, -89, 380, 20, "GameFontNormalSmall")
-    self.detailsToggle = Button(details, "Details", 400, -87, 90, function() C:ToggleDetails() end)
+    self.historyHeading = Label(details, "WHAT IS REMEMBERED", 0, -89, 490, 20, "GameFontNormalSmall")
     self.entryRows = {}
     for i = 1, 10 do
-        local row = CreateFrame("Frame", nil, details)
+        local row = CreateFrame("Button", nil, details)
         row:SetSize(490, 30)
         row.title = Label(row, "", 0, -3, 392, 20, "GameFontNormalSmall")
         row.persona = Label(row, "", 0, -24, 392, 16, "GameFontHighlightSmall")
         row.persona:SetMaxLines(1)
         local titleFont, _, titleFlags = row.title:GetFont()
         if titleFont then row.title:SetFont(titleFont, 12, titleFlags) end
-        row.context = Label(row, "", 0, -28, 392, 50, "QuestFont")
         row.note = Label(row, "", 0, -24, 490, 42, "QuestFont")
+        row.noteWidth = 392
         row.note:SetJustifyV("TOP")
-        row.context:SetJustifyV("TOP")
-        row.context:SetTextColor(0.38, 0.29, 0.19)
-        local contextFont, _, contextFlags = row.context:GetFont()
-        if contextFont then row.context:SetFont(contextFont, 10, contextFlags) end
         local font, _, flags = row.note:GetFont()
         if font then row.note:SetFont(font, 14, flags) end
         row.edit = Button(row, "Read / edit", 400, 0, 90, function()
@@ -175,6 +166,11 @@ function Modern:Create()
         row.delete = Button(row, "Delete", 400, -28, 90, function()
             if row.entry and C.selection then
                 C:DeleteEntry(row.entry.id)
+            end
+        end)
+        row:SetScript("OnClick", function(button)
+            if button.entry and C.selection then
+                C:OpenEditor(C.selection.identity, button.entry.context, button.entry.id)
             end
         end)
         row.divider = Rect(row, "ARTWORK", 0, -80, 490, 1, 0.39, 0.25, 0.12, 0.3)

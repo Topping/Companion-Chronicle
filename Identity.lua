@@ -26,7 +26,12 @@ function ns.UnitIdentity(unit)
     if not ns.Public(realm) then return nil end
     realm = type(realm) == "string" and realm or nil
     local guid = ns.Text(ns.Read(UnitGUID, unit))
-    return ns.Client.UnitName(name, realm, guid, unit)
+    local identity = ns.Client.UnitName(name, realm, guid, unit)
+    if identity then
+        identity.race = ns.Text(ns.Read(UnitRace, unit))
+        identity.class = ns.Text(ns.Read(UnitClass, unit))
+    end
+    return identity
 end
 
 function ns.MenuIdentity(data)
