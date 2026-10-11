@@ -1,16 +1,15 @@
 local _, ns = ...
-local client = { flavor = "forever", partition = "forever:1" }
+local client = { flavor = "retail", partition = "retail:1", minimapIconSize = 20 }
 ns.Client = client
 
-function client.UnitName(name, surname, guid)
-    if not name or name == UNKNOWN or not surname then return nil end
-    -- Live Forever unit probes returned first name and surname separately.
-    -- A full name already supplied by the client retains a separate realm.
-    if not name:find("%s") then
-        if not guid then return nil end
-        return ns.Model.Identity(name .. " " .. surname, nil, guid)
+function client.UnitName(name, realm, guid, unit)
+    if not name or name == UNKNOWN then return nil end
+    if (realm == nil or realm == "") and type(LE_REALM_RELATION_SAME) == "number"
+        and ns.Read(UnitRealmRelationship, unit) == LE_REALM_RELATION_SAME then
+        realm = ns.Text(ns.Read(GetNormalizedRealmName))
     end
-    return ns.Model.Identity(name, surname, guid)
+    if not realm or realm == "" then return nil end
+    return ns.Model.Identity(name, realm, guid)
 end
 
 function client.MenuName(name, realm, guid)
@@ -20,7 +19,6 @@ function client.MenuName(name, realm, guid)
         if realm and realm:gsub("%s", "") ~= splitRealm:gsub("%s", "") then return nil end
         name, realm = splitName, splitRealm
     end
-    -- A full Forever name without a realm is safe only with the original GUID.
     return ns.Model.Identity(name, realm, guid)
 end
 
